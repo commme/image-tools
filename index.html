@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Image Tools — 브라우저에서 바로</title>
-<meta name="description" content="설치 없이 브라우저에서 워터마크·분할·합치기·텍스트·업스케일. 파일은 업로드되지 않고 본인 PC에서만 처리됩니다.">
-<meta property="og:title" content="Image Tools">
-<meta property="og:description" content="설치 없이 브라우저에서 이미지 편집 — 파일 업로드 없음.">
+<title>Image Tools — 브라우저에서 바로 (8가지 기능)</title>
+<meta name="description" content="설치 없이 브라우저에서 워터마크·분할·합치기·텍스트·업스케일·배경제거·사람제거·워터마크제거. 파일 업로드 없이 본인 PC에서만 처리됩니다.">
+<meta property="og:title" content="Image Tools — 브라우저에서 8가지 이미지 편집">
+<meta property="og:description" content="배경 제거, 사람 제거까지 브라우저에서. 업로드 없음.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🖼️</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
@@ -18,19 +18,21 @@ body{font-family:'Noto Sans KR','Inter',sans-serif;background:#121212;color:#e0e
 h1{font-family:'Inter','Noto Sans KR',sans-serif;font-size:2.2rem;font-weight:900;color:#fff;letter-spacing:-1px;margin-bottom:4px}
 .subtitle{color:rgba(255,255,255,.85);font-size:.9rem;font-weight:400}
 .badge{display:inline-block;background:rgba(0,0,0,.3);color:#fff;font-size:.7rem;font-weight:700;padding:3px 10px;border-radius:20px;margin-top:8px;letter-spacing:.3px}
-.badge.local{background:#1ed760;color:#121212}
-.main{max-width:1100px;margin:-30px auto 0;padding:0 24px 40px;display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start}
+.main{max-width:1100px;margin:-30px auto 0;padding:0 24px 40px;display:grid;grid-template-columns:1fr 360px;gap:20px;align-items:start}
 @media(max-width:800px){.main{grid-template-columns:1fr;margin-top:-20px}}
-.left-panel{background:#181818;border-radius:12px;padding:20px;min-height:400px}
+.left-panel{background:#181818;border-radius:12px;padding:20px;min-height:400px;position:relative}
 .panel-title{font-size:.82rem;font-weight:700;color:#b3b3b3;margin-bottom:14px;text-transform:uppercase;letter-spacing:.5px}
 .dropzone{border:2px dashed #333;border-radius:10px;padding:60px 20px;text-align:center;cursor:pointer;transition:all .2s}
 .dropzone:hover,.dropzone.drag-over{border-color:#1ed760;background:rgba(30,215,96,.05)}
 .drop-icon{font-size:2.4rem;margin-bottom:10px}
 .drop-text{color:#b3b3b3;font-size:.88rem}.drop-text strong{color:#1ed760}
 .drop-hint{color:#535353;font-size:.75rem;margin-top:8px}
-.img-preview{display:none;text-align:center}
+.img-preview{display:none;text-align:center;position:relative}
 .img-preview.show{display:block}
-.img-preview img,.img-preview canvas{max-width:100%;max-height:380px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.5)}
+.canvas-wrap{display:inline-block;position:relative}
+.img-preview canvas{max-width:100%;max-height:380px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.5);display:block}
+#overlayCanvas{position:absolute;top:0;left:0;cursor:crosshair;pointer-events:none}
+#overlayCanvas.active{pointer-events:auto}
 .img-info{display:flex;align-items:center;justify-content:space-between;margin-top:12px;flex-wrap:wrap;gap:8px}
 .img-name{font-size:.82rem;color:#b3b3b3;font-weight:700}
 .img-size{font-size:.75rem;color:#535353}
@@ -47,7 +49,7 @@ h1{font-family:'Inter','Noto Sans KR',sans-serif;font-size:2.2rem;font-weight:90
 .feat-name{font-size:.82rem;font-weight:700;color:#fff;display:flex;align-items:center;gap:6px}
 .feat-desc{font-size:.68rem;color:#727272;margin-top:1px}
 .feat.active .feat-name{color:#1ed760}
-.tag-local{background:#333;color:#b3b3b3;font-size:.6rem;font-weight:700;padding:1px 6px;border-radius:10px;letter-spacing:.3px}
+.tag-ai{background:#1ed760;color:#121212;font-size:.58rem;font-weight:900;padding:1px 6px;border-radius:10px;letter-spacing:.3px}
 .opt-panel{display:none;background:#181818;border-radius:10px;padding:16px;margin-top:8px}
 .opt-panel.show{display:block}
 .opt-title{font-size:.82rem;color:#1ed760;font-weight:700;margin-bottom:12px}
@@ -64,9 +66,9 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
 .btn-go{background:#1ed760;color:#121212;width:100%;display:block;text-align:center;margin-top:10px}
 .btn-go:hover{background:#1fdf64}
 .btn-go:disabled{background:#333;color:#666;cursor:not-allowed}
-.notice{background:#2a1e0a;border:1px solid #5a3e1a;border-radius:8px;padding:10px 12px;font-size:.75rem;color:#f0c978;margin-top:10px;line-height:1.5}
-.notice a{color:#1ed760;text-decoration:none;font-weight:700}
-.notice a:hover{text-decoration:underline}
+.notice{background:#0a2a1e;border:1px solid #1a5a3e;border-radius:8px;padding:10px 12px;font-size:.75rem;color:#7fdfa8;margin-top:10px;line-height:1.5}
+.notice.warn{background:#2a1e0a;border-color:#5a3e1a;color:#f0c978}
+.notice strong{color:#fff}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1ed760;color:#121212;padding:12px 24px;border-radius:20px;font-weight:700;font-size:.85rem;z-index:100;display:none;box-shadow:0 4px 20px rgba(0,0,0,.5)}
 .toast.show{display:block;animation:pop .3s ease}
 .toast.err{background:#e74c3c;color:#fff}
@@ -76,6 +78,12 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
 .footer a:hover{color:#1ed760}
 .hidden{display:none!important}
 .privacy-line{color:rgba(255,255,255,.65);font-size:.72rem;margin-top:6px}
+.loader{position:absolute;inset:0;background:rgba(18,18,18,.92);display:none;align-items:center;justify-content:center;flex-direction:column;border-radius:12px;z-index:10;padding:20px;text-align:center}
+.loader.show{display:flex}
+.spinner{width:40px;height:40px;border:3px solid #333;border-top-color:#1ed760;border-radius:50%;animation:spin 1s linear infinite;margin-bottom:14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loader-text{font-size:.85rem;color:#fff;font-weight:700;margin-bottom:4px}
+.loader-sub{font-size:.72rem;color:#b3b3b3;max-width:340px;line-height:1.5}
 </style>
 </head>
 <body>
@@ -83,9 +91,9 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
 <section class="hero">
   <div class="hero-inner">
     <h1>🖼️ Image Tools</h1>
-    <p class="subtitle">설치 없이 브라우저에서 이미지 편집 — 파일은 본인 PC에서만 처리됩니다.</p>
-    <div id="modeBadge" class="badge">🌐 웹 버전 · 5가지 가벼운 기능</div>
-    <p class="privacy-line">업로드 없음 · 서버 전송 없음 · 본인 브라우저 메모리에서만 처리</p>
+    <p class="subtitle">설치 없이 브라우저에서 8가지 이미지 편집 — 파일은 본인 PC에서만 처리됩니다.</p>
+    <div class="badge">🌐 웹 버전 · 8가지 기능 모두 브라우저에서 실행</div>
+    <p class="privacy-line">업로드 없음 · 서버 전송 없음 · AI 모델도 본인 디바이스에서 연산</p>
   </div>
 </section>
 
@@ -101,12 +109,20 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
       <input type="file" id="fileInput" accept="image/*" hidden>
     </div>
     <div id="preview" class="img-preview">
-      <canvas id="previewCanvas"></canvas>
+      <div class="canvas-wrap">
+        <canvas id="previewCanvas"></canvas>
+        <canvas id="overlayCanvas"></canvas>
+      </div>
       <div class="img-info">
         <span class="img-name" id="imgName"></span>
         <span class="img-size" id="imgSize"></span>
         <button class="img-change" id="changeBtn">변경</button>
       </div>
+    </div>
+    <div id="loader" class="loader">
+      <div class="spinner"></div>
+      <div class="loader-text" id="loaderText">처리 중...</div>
+      <div class="loader-sub" id="loaderSub"></div>
     </div>
   </section>
 
@@ -114,16 +130,14 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
   <aside class="right-panel">
     <div class="panel-title">기능</div>
     <div class="feature-list" id="featList">
-      <!-- 5 browser features -->
       <div class="feat active" data-id="watermark"><div class="feat-icon">💧</div><div class="feat-text"><div class="feat-name">워터마크 추가</div><div class="feat-desc">텍스트 워터마크 · 투명도/위치</div></div></div>
       <div class="feat" data-id="split"><div class="feat-icon">⊞</div><div class="feat-text"><div class="feat-name">이미지 분할</div><div class="feat-desc">행×열 그리드로 조각 + ZIP</div></div></div>
       <div class="feat" data-id="merge"><div class="feat-icon">⊟</div><div class="feat-text"><div class="feat-name">이미지 합치기</div><div class="feat-desc">가로/세로/그리드</div></div></div>
       <div class="feat" data-id="text"><div class="feat-icon">T</div><div class="feat-text"><div class="feat-name">텍스트 추가</div><div class="feat-desc">위치/크기/색/배경박스</div></div></div>
       <div class="feat" data-id="upscale"><div class="feat-icon">⇱</div><div class="feat-text"><div class="feat-name">업스케일링</div><div class="feat-desc">2x · 3x · 4x + 샤픈</div></div></div>
-      <!-- 3 local-only features -->
-      <div class="feat" data-id="watermark_remove" data-heavy="1"><div class="feat-icon">🩹</div><div class="feat-text"><div class="feat-name">워터마크 제거 <span class="tag-local">LOCAL</span></div><div class="feat-desc">OpenCV inpainting · 로컬 전용</div></div></div>
-      <div class="feat" data-id="bg_remove" data-heavy="1"><div class="feat-icon">✂️</div><div class="feat-text"><div class="feat-name">배경 제거 <span class="tag-local">LOCAL</span></div><div class="feat-desc">rembg U²-Net AI · 176MB 모델</div></div></div>
-      <div class="feat" data-id="person_remove" data-heavy="1"><div class="feat-icon">👤</div><div class="feat-text"><div class="feat-name">사람 제거 <span class="tag-local">LOCAL</span></div><div class="feat-desc">rembg + inpainting · 로컬 전용</div></div></div>
+      <div class="feat" data-id="watermark_remove"><div class="feat-icon">🩹</div><div class="feat-text"><div class="feat-name">워터마크 제거 <span class="tag-ai">CV</span></div><div class="feat-desc">영역 드래그 → OpenCV inpaint</div></div></div>
+      <div class="feat" data-id="bg_remove"><div class="feat-icon">✂️</div><div class="feat-text"><div class="feat-name">배경 제거 <span class="tag-ai">AI</span></div><div class="feat-desc">U²-Net 브라우저 ONNX · 투명 PNG</div></div></div>
+      <div class="feat" data-id="person_remove"><div class="feat-icon">👤</div><div class="feat-text"><div class="feat-name">사람 제거 <span class="tag-ai">AI</span></div><div class="feat-desc">U²-Net 마스크 + OpenCV inpaint</div></div></div>
     </div>
 
     <!-- Option panels -->
@@ -170,11 +184,24 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
       <button class="btn btn-go" data-run="upscale">실행</button>
     </div>
 
-    <!-- Heavy/local-only shared panel -->
-    <div id="opt-heavy" class="opt-panel">
-      <div class="opt-title" id="opt-heavy-title">🩹 로컬 전용 기능</div>
-      <div class="notice" id="heavyNotice"></div>
-      <button class="btn btn-go" id="heavyBtn">GitHub에서 받기</button>
+    <div id="opt-watermark_remove" class="opt-panel">
+      <div class="opt-title">🩹 워터마크 제거</div>
+      <div class="notice">미리보기에서 워터마크 영역을 <strong>마우스로 드래그하여 사각형 선택</strong> 후 실행하세요. OpenCV Telea inpainting으로 자동 복원합니다.</div>
+      <div class="form-row"><label class="form-label">반경(px)</label><input type="range" id="wmr_radius" min="3" max="20" value="5"><span id="wmr_radius_v" style="font-size:.75rem;color:#b3b3b3;width:40px;text-align:right">5</span></div>
+      <button class="btn btn-go" data-run="watermark_remove">제거 실행</button>
+    </div>
+
+    <div id="opt-bg_remove" class="opt-panel">
+      <div class="opt-title">✂️ 배경 제거 (AI)</div>
+      <div class="notice"><strong>U²-Net</strong> 모델이 브라우저에서 직접 실행됩니다. 첫 실행 시 모델(~40MB) 다운로드 → 이후 캐시. 결과는 투명 PNG.</div>
+      <button class="btn btn-go" data-run="bg_remove">배경 제거 실행</button>
+    </div>
+
+    <div id="opt-person_remove" class="opt-panel">
+      <div class="opt-title">👤 사람 제거 (AI + CV)</div>
+      <div class="notice">U²-Net으로 사람 마스크 추출 → OpenCV inpaint로 그 영역을 주변 배경으로 복원합니다.</div>
+      <div class="form-row"><label class="form-label">반경(px)</label><input type="range" id="pr_radius" min="3" max="30" value="10"><span id="pr_radius_v" style="font-size:.75rem;color:#b3b3b3;width:40px;text-align:right">10</span></div>
+      <button class="btn btn-go" data-run="person_remove">사람 제거 실행</button>
     </div>
 
   </aside>
@@ -190,48 +217,59 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
 <!-- JSZip CDN for split feature -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha512-XMVd28F1oH/O71fzwBnV7HucLxVwtxf26XV8P4wPk26EDxuGZ91N8bsOttmnomcCD3CS5ZMRL50H0GgOHvegtg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
+<!-- @imgly/background-removal ESM (lazy: imported on demand inside module script below) -->
+<script type="module">
+  // Expose loader for non-module script
+  window.__loadBgRemoval = async () => {
+    if (window.__removeBackground) return window.__removeBackground;
+    const mod = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.4.5/+esm');
+    window.__removeBackground = mod.removeBackground || mod.default;
+    return window.__removeBackground;
+  };
+</script>
+
 <script>
 (function(){
   'use strict';
 
-  // ---- Local detection ----
-  const isLocal = ['localhost','127.0.0.1','0.0.0.0',''].includes(location.hostname);
-  const modeBadge = document.getElementById('modeBadge');
-  if (isLocal) {
-    modeBadge.textContent = '💻 로컬 모드 · 전체 기능 사용 가능';
-    modeBadge.classList.add('local');
-  }
-
   // ---- State ----
-  let currentImage = null;      // Image element
+  let currentImage = null;
   let currentFileName = '';
   let currentFileSize = 0;
   let currentFeature = 'watermark';
+  let displayScale = 1; // preview-canvas display scale relative to original
+
+  // Rect selection (for watermark_remove)
+  let selRect = null; // {x,y,w,h} in original image coords
+  let dragStart = null;
 
   // ---- DOM ----
   const $ = (id) => document.getElementById(id);
   const previewBox = $('preview');
   const previewCanvas = $('previewCanvas');
+  const overlay = $('overlayCanvas');
   const dropzone = $('dropzone');
   const fileInput = $('fileInput');
   const imgName = $('imgName');
   const imgSize = $('imgSize');
   const toast = $('toast');
+  const loader = $('loader');
+  const loaderText = $('loaderText');
+  const loaderSub = $('loaderSub');
 
-  // ---- Toast ----
+  function showLoader(text, sub){ loaderText.textContent = text || '처리 중...'; loaderSub.textContent = sub || ''; loader.classList.add('show'); }
+  function hideLoader(){ loader.classList.remove('show'); }
+
   function notify(msg, isErr){
     toast.textContent = msg;
     toast.className = 'toast show' + (isErr ? ' err' : '');
     clearTimeout(notify._t);
-    notify._t = setTimeout(()=>{ toast.className='toast'; }, 2400);
+    notify._t = setTimeout(()=>{ toast.className='toast'; }, 2600);
   }
 
   // ---- File loader ----
   function loadFile(file){
-    if (!file || !file.type.startsWith('image/')) {
-      notify('이미지 파일만 가능합니다.', true);
-      return;
-    }
+    if (!file || !file.type.startsWith('image/')) { notify('이미지 파일만 가능합니다.', true); return; }
     currentFileName = file.name;
     currentFileSize = file.size;
     const reader = new FileReader();
@@ -239,6 +277,7 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
       const img = new Image();
       img.onload = () => {
         currentImage = img;
+        selRect = null;
         drawPreview(img);
         dropzone.classList.add('hidden');
         previewBox.classList.add('show');
@@ -257,7 +296,23 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
     if (h > maxH) { w = w * (maxH/h); h = maxH; }
     previewCanvas.width = w; previewCanvas.height = h;
     previewCanvas.getContext('2d').drawImage(img, 0, 0, w, h);
+    overlay.width = w; overlay.height = h;
+    overlay.style.width = w + 'px'; overlay.style.height = h + 'px';
+    displayScale = w / img.width;
+    clearOverlay();
   }
+  function clearOverlay(){ overlay.getContext('2d').clearRect(0,0,overlay.width,overlay.height); }
+  function drawSelOverlay(){
+    if (!selRect) { clearOverlay(); return; }
+    const ctx = overlay.getContext('2d');
+    ctx.clearRect(0,0,overlay.width,overlay.height);
+    ctx.strokeStyle = '#1ed760'; ctx.lineWidth = 2; ctx.setLineDash([6,4]);
+    ctx.fillStyle = 'rgba(30,215,96,0.15)';
+    const x = selRect.x * displayScale, y = selRect.y * displayScale;
+    const w = selRect.w * displayScale, h = selRect.h * displayScale;
+    ctx.fillRect(x,y,w,h); ctx.strokeRect(x,y,w,h);
+  }
+
   // Drag & drop
   ['dragenter','dragover'].forEach(ev => dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.add('drag-over'); }));
   ['dragleave','drop'].forEach(ev => dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('drag-over'); }));
@@ -266,13 +321,32 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
   fileInput.addEventListener('change', e => { if (e.target.files[0]) loadFile(e.target.files[0]); });
   $('changeBtn').addEventListener('click', () => { fileInput.value=''; fileInput.click(); });
 
+  // Overlay rectangle selection
+  function overlayPoint(e){
+    const r = overlay.getBoundingClientRect();
+    return { x: (e.clientX - r.left) / displayScale, y: (e.clientY - r.top) / displayScale };
+  }
+  overlay.addEventListener('mousedown', e => {
+    if (currentFeature !== 'watermark_remove') return;
+    dragStart = overlayPoint(e);
+    selRect = { x: dragStart.x, y: dragStart.y, w: 0, h: 0 };
+  });
+  overlay.addEventListener('mousemove', e => {
+    if (!dragStart || currentFeature !== 'watermark_remove') return;
+    const p = overlayPoint(e);
+    selRect = {
+      x: Math.min(dragStart.x, p.x),
+      y: Math.min(dragStart.y, p.y),
+      w: Math.abs(p.x - dragStart.x),
+      h: Math.abs(p.y - dragStart.y)
+    };
+    drawSelOverlay();
+  });
+  overlay.addEventListener('mouseup', () => { dragStart = null; });
+  overlay.addEventListener('mouseleave', () => { dragStart = null; });
+
   // ---- Feature switcher ----
   const featList = $('featList');
-  const HEAVY = {
-    watermark_remove: {title:'🩹 워터마크 제거', body:'OpenCV Telea inpainting이 필요한 무거운 처리라 브라우저에서 실행되지 않습니다.'},
-    bg_remove:        {title:'✂️ 배경 제거',   body:'rembg U²-Net AI 모델(176MB)이 필요합니다. 브라우저 버전은 준비 중입니다.'},
-    person_remove:    {title:'👤 사람 제거',   body:'rembg + OpenCV inpainting이 필요한 무거운 처리라 브라우저에서 실행되지 않습니다.'}
-  };
   featList.addEventListener('click', e => {
     const feat = e.target.closest('.feat'); if (!feat) return;
     document.querySelectorAll('.feat').forEach(f => f.classList.remove('active'));
@@ -280,24 +354,15 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
     const id = feat.dataset.id;
     currentFeature = id;
     document.querySelectorAll('.opt-panel').forEach(p => p.classList.remove('show'));
-    if (feat.dataset.heavy) {
-      const h = HEAVY[id];
-      $('opt-heavy-title').textContent = h.title;
-      const notice = $('heavyNotice');
-      const btn = $('heavyBtn');
-      if (isLocal) {
-        notice.innerHTML = `${h.body}<br><br>✅ 로컬 환경 감지됨. <a href="http://localhost:5001" target="_blank" rel="noopener">http://localhost:5001</a>에서 Flask 서버가 실행 중이면 거기서 이 기능을 사용할 수 있습니다.`;
-        btn.textContent = 'Flask 앱 열기 (localhost:5001)';
-        btn.onclick = () => window.open('http://localhost:5001', '_blank', 'noopener');
-      } else {
-        notice.innerHTML = `${h.body}<br><br>⚠️ <strong>로컬 환경 전용</strong>입니다. GitHub에서 코드를 받아 <code>start.bat</code> (Windows) 또는 <code>./start.sh</code> (Mac/Linux) 실행 후 사용하세요.`;
-        btn.textContent = 'GitHub에서 받기';
-        btn.onclick = () => window.open('https://github.com/commme/image-tools', '_blank', 'noopener');
-      }
-      $('opt-heavy').classList.add('show');
+    const panel = $('opt-' + id);
+    if (panel) panel.classList.add('show');
+    // Overlay enable only for watermark_remove
+    if (id === 'watermark_remove') {
+      overlay.classList.add('active');
+      drawSelOverlay();
     } else {
-      const panel = $('opt-' + id);
-      if (panel) panel.classList.add('show');
+      overlay.classList.remove('active');
+      clearOverlay();
     }
   });
 
@@ -313,39 +378,47 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
   bindRange('tx_x','tx_x_v');
   bindRange('tx_y','tx_y_v');
   bindRange('tx_size','tx_size_v', x => x+'%');
+  bindRange('wmr_radius','wmr_radius_v');
+  bindRange('pr_radius','pr_radius_v');
 
   // ---- Run buttons ----
-  document.body.addEventListener('click', e => {
+  document.body.addEventListener('click', async e => {
     const btn = e.target.closest('[data-run]'); if (!btn) return;
     const action = btn.dataset.run;
-    if (!currentImage) { notify('먼저 이미지를 올려주세요.', true); return; }
+    if (!currentImage && action !== 'merge') { notify('먼저 이미지를 올려주세요.', true); return; }
     try {
       if (action === 'watermark') runWatermark();
-      else if (action === 'split') runSplit();
-      else if (action === 'merge') runMerge();
+      else if (action === 'split') await runSplit();
+      else if (action === 'merge') await runMerge();
       else if (action === 'text') runText();
       else if (action === 'upscale') runUpscale();
+      else if (action === 'watermark_remove') await runWatermarkRemove();
+      else if (action === 'bg_remove') await runBgRemove();
+      else if (action === 'person_remove') await runPersonRemove();
     } catch(err) {
       console.error(err);
-      notify('처리 중 오류: ' + err.message, true);
+      hideLoader();
+      notify('처리 중 오류: ' + (err.message || err), true);
     }
   });
 
   // ---- Helpers ----
   function makeCanvas(w, h){ const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
   function showResult(canvas){
-    previewCanvas.width = canvas.width;
-    previewCanvas.height = canvas.height;
-    const ctx = previewCanvas.getContext('2d');
-    // fit display size
     const maxW = 900, maxH = 500;
     let w = canvas.width, h = canvas.height;
     if (w > maxW) { h = h * (maxW/w); w = maxW; }
     if (h > maxH) { w = w * (maxH/h); h = maxH; }
     previewCanvas.width = w; previewCanvas.height = h;
-    ctx.drawImage(canvas, 0, 0, w, h);
-    // store full-res for download
-    previewCanvas._full = canvas;
+    previewCanvas.getContext('2d').drawImage(canvas, 0, 0, w, h);
+    overlay.width = w; overlay.height = h;
+    overlay.style.width = w + 'px'; overlay.style.height = h + 'px';
+    displayScale = w / canvas.width;
+    clearOverlay();
+    // Update currentImage to result so chained operations work on processed image
+    const newImg = new Image();
+    newImg.onload = () => { currentImage = newImg; };
+    newImg.src = canvas.toDataURL('image/png');
   }
   function downloadCanvas(canvas, name){
     canvas.toBlob(blob => {
@@ -356,9 +429,30 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
       setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 100);
     }, 'image/png');
   }
-  function baseName(){
-    const n = currentFileName || 'image';
-    return n.replace(/\.[^.]+$/, '');
+  function baseName(){ return (currentFileName || 'image').replace(/\.[^.]+$/, ''); }
+
+  // ---- Lazy loaders ----
+  let opencvPromise = null;
+  function loadOpenCV(){
+    if (opencvPromise) return opencvPromise;
+    if (window.cv && window.cv.Mat) return Promise.resolve(window.cv);
+    opencvPromise = new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://docs.opencv.org/4.10.0/opencv.js';
+      s.async = true;
+      s.onload = () => {
+        if (window.cv && window.cv.Mat) return resolve(window.cv);
+        // cv loads asynchronously; wait for runtime
+        let waited = 0;
+        const t = setInterval(() => {
+          if (window.cv && window.cv.Mat) { clearInterval(t); resolve(window.cv); }
+          else if ((waited += 100) > 30000) { clearInterval(t); reject(new Error('OpenCV 로딩 시간 초과')); }
+        }, 100);
+      };
+      s.onerror = () => reject(new Error('OpenCV.js 로드 실패'));
+      document.head.appendChild(s);
+    });
+    return opencvPromise;
   }
 
   // ---- Watermark ----
@@ -385,11 +479,8 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
       const stepY = fontPx * 3;
       for (let y = fontPx; y < canvas.height + stepY; y += stepY) {
         for (let x = -stepX; x < canvas.width + stepX; x += stepX) {
-          ctx.save();
-          ctx.translate(x, y);
-          ctx.rotate(-Math.PI/8);
-          ctx.fillText(text, 0, 0);
-          ctx.restore();
+          ctx.save(); ctx.translate(x, y); ctx.rotate(-Math.PI/8);
+          ctx.fillText(text, 0, 0); ctx.restore();
         }
       }
       ctx.restore();
@@ -425,7 +516,6 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
         pieces.push(canvas);
       }
     }
-    // show first piece as preview
     if (pieces[0]) showResult(pieces[0]);
     const blob = await zip.generateAsync({type:'blob'});
     const url = URL.createObjectURL(blob);
@@ -445,23 +535,20 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
     const imgs = await Promise.all(Array.from(files).map(f => new Promise((res, rej) => {
       const r = new FileReader();
       r.onload = e => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = e.target.result; };
-      r.onerror = rej;
-      r.readAsDataURL(f);
+      r.onerror = rej; r.readAsDataURL(f);
     })));
     let canvas;
     if (dir === 'h') {
       const h = Math.max(...imgs.map(i => i.height));
       const w = imgs.reduce((s,i)=>s+i.width, 0) + gap * (imgs.length-1);
       canvas = makeCanvas(w, h);
-      const ctx = canvas.getContext('2d');
-      let x = 0;
+      const ctx = canvas.getContext('2d'); let x = 0;
       imgs.forEach(i => { ctx.drawImage(i, x, 0); x += i.width + gap; });
     } else if (dir === 'v') {
       const w = Math.max(...imgs.map(i => i.width));
       const h = imgs.reduce((s,i)=>s+i.height, 0) + gap * (imgs.length-1);
       canvas = makeCanvas(w, h);
-      const ctx = canvas.getContext('2d');
-      let y = 0;
+      const ctx = canvas.getContext('2d'); let y = 0;
       imgs.forEach(i => { ctx.drawImage(i, 0, y); y += i.height + gap; });
     } else {
       const cols = Math.ceil(Math.sqrt(imgs.length));
@@ -480,7 +567,7 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
     notify(`${imgs.length}장 합치기 완료`);
   }
 
-  // ---- Text overlay ----
+  // ---- Text ----
   function runText(){
     const text = $('tx_text').value || '';
     const xPct = parseFloat($('tx_x').value);
@@ -516,10 +603,7 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
     const doSharpen = $('up_sharpen').checked;
     const w = currentImage.width * scale;
     const h = currentImage.height * scale;
-    if (w * h > 40_000_000) {
-      notify('결과 크기가 너무 큽니다(4000만 픽셀 초과). 배율을 낮춰주세요.', true);
-      return;
-    }
+    if (w * h > 40_000_000) { notify('결과 크기가 너무 큽니다(4000만 픽셀 초과). 배율을 낮춰주세요.', true); return; }
     const canvas = makeCanvas(w, h);
     const ctx = canvas.getContext('2d');
     ctx.imageSmoothingEnabled = true;
@@ -531,7 +615,6 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
     notify(`${scale}x 업스케일 완료`);
   }
   function sharpen(ctx, w, h){
-    // 3x3 sharpen kernel: [0,-1,0 / -1,5,-1 / 0,-1,0]
     const src = ctx.getImageData(0, 0, w, h);
     const dst = ctx.createImageData(w, h);
     const s = src.data, d = dst.data;
@@ -539,17 +622,136 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
       for (let x=1; x<w-1; x++){
         const i = (y*w + x) * 4;
         for (let c=0; c<3; c++){
-          const v = 5*s[i+c]
-                  - s[i+c - 4]
-                  - s[i+c + 4]
-                  - s[i+c - w*4]
-                  - s[i+c + w*4];
+          const v = 5*s[i+c] - s[i+c-4] - s[i+c+4] - s[i+c-w*4] - s[i+c+w*4];
           d[i+c] = Math.max(0, Math.min(255, v));
         }
         d[i+3] = s[i+3];
       }
     }
     ctx.putImageData(dst, 0, 0);
+  }
+
+  // ---- Watermark removal (OpenCV inpaint with rect mask) ----
+  async function runWatermarkRemove(){
+    if (!selRect || selRect.w < 4 || selRect.h < 4) {
+      notify('미리보기에서 워터마크 영역을 드래그하여 선택하세요.', true);
+      return;
+    }
+    showLoader('OpenCV.js 로딩 중...', '첫 실행 시 ~9MB 다운로드. 다음 실행은 캐시 사용.');
+    const cv = await loadOpenCV();
+    showLoader('inpainting 실행 중...', '잠시만 기다려주세요.');
+    await new Promise(r => setTimeout(r, 30));
+
+    const W = currentImage.width, H = currentImage.height;
+    const src = makeCanvas(W, H);
+    src.getContext('2d').drawImage(currentImage, 0, 0);
+
+    const srcMat = cv.imread(src);
+    const maskMat = new cv.Mat.zeros(H, W, cv.CV_8UC1);
+    const x = Math.max(0, Math.round(selRect.x));
+    const y = Math.max(0, Math.round(selRect.y));
+    const w = Math.min(W - x, Math.round(selRect.w));
+    const h = Math.min(H - y, Math.round(selRect.h));
+    const rect = new cv.Rect(x, y, w, h);
+    const roi = maskMat.roi(rect);
+    roi.setTo(new cv.Scalar(255));
+    roi.delete();
+
+    // Convert RGBA → RGB for inpaint
+    const rgbMat = new cv.Mat();
+    cv.cvtColor(srcMat, rgbMat, cv.COLOR_RGBA2RGB);
+    const dstMat = new cv.Mat();
+    const radius = parseInt($('wmr_radius').value) || 5;
+    cv.inpaint(rgbMat, maskMat, dstMat, radius, cv.INPAINT_TELEA);
+    const outMat = new cv.Mat();
+    cv.cvtColor(dstMat, outMat, cv.COLOR_RGB2RGBA);
+
+    const out = makeCanvas(W, H);
+    cv.imshow(out, outMat);
+    srcMat.delete(); maskMat.delete(); rgbMat.delete(); dstMat.delete(); outMat.delete();
+
+    selRect = null;
+    showResult(out);
+    downloadCanvas(out, `${baseName()}_watermark_removed.png`);
+    hideLoader();
+    notify('워터마크 제거 완료');
+  }
+
+  // ---- Background removal (browser ONNX U²-Net) ----
+  async function runBgRemove(){
+    showLoader('AI 모델 로딩 중...', '첫 실행 시 U²-Net 모델(~40MB) 다운로드. 다음 실행은 캐시 사용.');
+    const removeBackground = await window.__loadBgRemoval();
+    const W = currentImage.width, H = currentImage.height;
+    const src = makeCanvas(W, H);
+    src.getContext('2d').drawImage(currentImage, 0, 0);
+    const blob = await new Promise(res => src.toBlob(res, 'image/png'));
+
+    showLoader('배경 분리 중...', '이미지 크기에 따라 5~30초 소요됩니다.');
+    const resultBlob = await removeBackground(blob);
+    const url = URL.createObjectURL(resultBlob);
+    const im = new Image();
+    await new Promise((res, rej) => { im.onload = res; im.onerror = rej; im.src = url; });
+    const out = makeCanvas(im.width, im.height);
+    out.getContext('2d').drawImage(im, 0, 0);
+    URL.revokeObjectURL(url);
+    showResult(out);
+    downloadCanvas(out, `${baseName()}_no_bg.png`);
+    hideLoader();
+    notify('배경 제거 완료 (투명 PNG)');
+  }
+
+  // ---- Person removal (U²-Net mask + OpenCV inpaint) ----
+  async function runPersonRemove(){
+    showLoader('AI 모델 로딩 중...', '첫 실행 시 U²-Net(~40MB) 다운로드.');
+    const removeBackground = await window.__loadBgRemoval();
+
+    const W = currentImage.width, H = currentImage.height;
+    const src = makeCanvas(W, H);
+    src.getContext('2d').drawImage(currentImage, 0, 0);
+    const srcBlob = await new Promise(res => src.toBlob(res, 'image/png'));
+
+    showLoader('사람 마스크 추출 중...', '잠시만 기다려주세요.');
+    const cutBlob = await removeBackground(srcBlob);
+    const cutUrl = URL.createObjectURL(cutBlob);
+    const cutImg = new Image();
+    await new Promise((res, rej) => { cutImg.onload = res; cutImg.onerror = rej; cutImg.src = cutUrl; });
+    URL.revokeObjectURL(cutUrl);
+
+    showLoader('OpenCV.js 로딩 중...', '첫 실행 시 ~9MB 다운로드.');
+    const cv = await loadOpenCV();
+    showLoader('inpaint로 배경 복원 중...', '');
+    await new Promise(r => setTimeout(r, 30));
+
+    // Build mask from alpha channel (foreground = person)
+    const maskCanvas = makeCanvas(W, H);
+    maskCanvas.getContext('2d').drawImage(cutImg, 0, 0, W, H);
+    const maskData = maskCanvas.getContext('2d').getImageData(0, 0, W, H);
+    const maskMat = new cv.Mat(H, W, cv.CV_8UC1);
+    for (let i=0, j=0; i<maskData.data.length; i+=4, j++){
+      maskMat.data[j] = maskData.data[i+3] > 30 ? 255 : 0;
+    }
+    // Dilate mask slightly to avoid edge artifacts
+    const kernel = cv.Mat.ones(5, 5, cv.CV_8U);
+    const dilated = new cv.Mat();
+    cv.dilate(maskMat, dilated, kernel);
+
+    const srcMat = cv.imread(src);
+    const rgbMat = new cv.Mat();
+    cv.cvtColor(srcMat, rgbMat, cv.COLOR_RGBA2RGB);
+    const dstMat = new cv.Mat();
+    const radius = parseInt($('pr_radius').value) || 10;
+    cv.inpaint(rgbMat, dilated, dstMat, radius, cv.INPAINT_TELEA);
+    const outMat = new cv.Mat();
+    cv.cvtColor(dstMat, outMat, cv.COLOR_RGB2RGBA);
+
+    const out = makeCanvas(W, H);
+    cv.imshow(out, outMat);
+    srcMat.delete(); maskMat.delete(); kernel.delete(); dilated.delete(); rgbMat.delete(); dstMat.delete(); outMat.delete();
+
+    showResult(out);
+    downloadCanvas(out, `${baseName()}_person_removed.png`);
+    hideLoader();
+    notify('사람 제거 완료');
   }
 
 })();

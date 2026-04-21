@@ -14,3 +14,4 @@ venv/
 .omc/
 .bkit/
 .claude/
+security-audit/
