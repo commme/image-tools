@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Image Tools — 브라우저에서 바로</title>
+<meta name="description" content="설치 없이 브라우저에서 워터마크·분할·합치기·텍스트·업스케일. 파일은 업로드되지 않고 본인 PC에서만 처리됩니다.">
+<meta property="og:title" content="Image Tools">
+<meta property="og:description" content="설치 없이 브라우저에서 이미지 편집 — 파일 업로드 없음.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🖼️</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans KR','Inter',sans-serif;background:#121212;color:#e0e0e0;min-height:100vh}
+.hero{background:linear-gradient(180deg,#1ed760 0%,#1a9e48 25%,#121212 100%);padding:32px 24px 50px}
+.hero-inner{max-width:1100px;margin:0 auto}
+h1{font-family:'Inter','Noto Sans KR',sans-serif;font-size:2.2rem;font-weight:900;color:#fff;letter-spacing:-1px;margin-bottom:4px}
+.subtitle{color:rgba(255,255,255,.85);font-size:.9rem;font-weight:400}
+.badge{display:inline-block;background:rgba(0,0,0,.3);color:#fff;font-size:.7rem;font-weight:700;padding:3px 10px;border-radius:20px;margin-top:8px;letter-spacing:.3px}
+.badge.local{background:#1ed760;color:#121212}
+.main{max-width:1100px;margin:-30px auto 0;padding:0 24px 40px;display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start}
+@media(max-width:800px){.main{grid-template-columns:1fr;margin-top:-20px}}
+.left-panel{background:#181818;border-radius:12px;padding:20px;min-height:400px}
+.panel-title{font-size:.82rem;font-weight:700;color:#b3b3b3;margin-bottom:14px;text-transform:uppercase;letter-spacing:.5px}
+.dropzone{border:2px dashed #333;border-radius:10px;padding:60px 20px;text-align:center;cursor:pointer;transition:all .2s}
+.dropzone:hover,.dropzone.drag-over{border-color:#1ed760;background:rgba(30,215,96,.05)}
+.drop-icon{font-size:2.4rem;margin-bottom:10px}
+.drop-text{color:#b3b3b3;font-size:.88rem}.drop-text strong{color:#1ed760}
+.drop-hint{color:#535353;font-size:.75rem;margin-top:8px}
+.img-preview{display:none;text-align:center}
+.img-preview.show{display:block}
+.img-preview img,.img-preview canvas{max-width:100%;max-height:380px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.5)}
+.img-info{display:flex;align-items:center;justify-content:space-between;margin-top:12px;flex-wrap:wrap;gap:8px}
+.img-name{font-size:.82rem;color:#b3b3b3;font-weight:700}
+.img-size{font-size:.75rem;color:#535353}
+.img-change{background:none;border:1px solid #535353;border-radius:20px;color:#b3b3b3;cursor:pointer;font-size:.72rem;padding:4px 12px;font-weight:700;font-family:inherit}
+.img-change:hover{border-color:#fff;color:#fff}
+.right-panel{position:sticky;top:20px}
+.feature-list{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+.feat{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;background:#181818;cursor:pointer;transition:all .15s;border:1.5px solid transparent}
+.feat:hover{background:#222;border-color:#333}
+.feat.active{background:#1a2e1a;border-color:#1ed760}
+.feat-icon{font-size:1.15rem;width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:#242424;border-radius:8px;flex-shrink:0}
+.feat.active .feat-icon{background:#1ed760}
+.feat-text{flex:1;min-width:0}
+.feat-name{font-size:.82rem;font-weight:700;color:#fff;display:flex;align-items:center;gap:6px}
+.feat-desc{font-size:.68rem;color:#727272;margin-top:1px}
+.feat.active .feat-name{color:#1ed760}
+.tag-local{background:#333;color:#b3b3b3;font-size:.6rem;font-weight:700;padding:1px 6px;border-radius:10px;letter-spacing:.3px}
+.opt-panel{display:none;background:#181818;border-radius:10px;padding:16px;margin-top:8px}
+.opt-panel.show{display:block}
+.opt-title{font-size:.82rem;color:#1ed760;font-weight:700;margin-bottom:12px}
+.form-row{display:flex;gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap}
+.form-label{font-size:.75rem;color:#b3b3b3;min-width:56px;font-weight:700}
+.form-input{flex:1;padding:7px 10px;border:1px solid #333;border-radius:6px;background:#242424;color:#e0e0e0;font-size:.8rem;min-width:0;font-family:inherit}
+.form-input:focus{outline:none;border-color:#1ed760}
+select.form-input{appearance:none;cursor:pointer}
+input[type=range]{flex:1;accent-color:#1ed760}
+input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px;background:#242424;cursor:pointer;padding:2px}
+.chk-row{display:flex;align-items:center;gap:6px;font-size:.78rem;color:#b3b3b3;margin-top:4px}
+.chk-row input{accent-color:#1ed760}
+.btn{padding:10px 20px;border:none;border-radius:20px;font-size:.85rem;font-weight:700;cursor:pointer;transition:all .12s;font-family:inherit}
+.btn-go{background:#1ed760;color:#121212;width:100%;display:block;text-align:center;margin-top:10px}
+.btn-go:hover{background:#1fdf64}
+.btn-go:disabled{background:#333;color:#666;cursor:not-allowed}
+.notice{background:#2a1e0a;border:1px solid #5a3e1a;border-radius:8px;padding:10px 12px;font-size:.75rem;color:#f0c978;margin-top:10px;line-height:1.5}
+.notice a{color:#1ed760;text-decoration:none;font-weight:700}
+.notice a:hover{text-decoration:underline}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1ed760;color:#121212;padding:12px 24px;border-radius:20px;font-weight:700;font-size:.85rem;z-index:100;display:none;box-shadow:0 4px 20px rgba(0,0,0,.5)}
+.toast.show{display:block;animation:pop .3s ease}
+.toast.err{background:#e74c3c;color:#fff}
+@keyframes pop{from{transform:translate(-50%,10px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
+.footer{text-align:center;padding:30px 20px;color:#535353;font-size:.72rem;line-height:1.6}
+.footer a{color:#b3b3b3;text-decoration:none}
+.footer a:hover{color:#1ed760}
+.hidden{display:none!important}
+.privacy-line{color:rgba(255,255,255,.65);font-size:.72rem;margin-top:6px}
+</style>
+</head>
+<body>
+
+<section class="hero">
+  <div class="hero-inner">
+    <h1>🖼️ Image Tools</h1>
+    <p class="subtitle">설치 없이 브라우저에서 이미지 편집 — 파일은 본인 PC에서만 처리됩니다.</p>
+    <div id="modeBadge" class="badge">🌐 웹 버전 · 5가지 가벼운 기능</div>
+    <p class="privacy-line">업로드 없음 · 서버 전송 없음 · 본인 브라우저 메모리에서만 처리</p>
+  </div>
+</section>
+
+<main class="main">
+
+  <!-- Left: image area -->
+  <section class="left-panel">
+    <div class="panel-title">이미지</div>
+    <div id="dropzone" class="dropzone">
+      <div class="drop-icon">📁</div>
+      <div class="drop-text"><strong>파일 선택</strong> 또는 드래그</div>
+      <div class="drop-hint">PNG · JPG · WEBP</div>
+      <input type="file" id="fileInput" accept="image/*" hidden>
+    </div>
+    <div id="preview" class="img-preview">
+      <canvas id="previewCanvas"></canvas>
+      <div class="img-info">
+        <span class="img-name" id="imgName"></span>
+        <span class="img-size" id="imgSize"></span>
+        <button class="img-change" id="changeBtn">변경</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Right: features + options -->
+  <aside class="right-panel">
+    <div class="panel-title">기능</div>
+    <div class="feature-list" id="featList">
+      <!-- 5 browser features -->
+      <div class="feat active" data-id="watermark"><div class="feat-icon">💧</div><div class="feat-text"><div class="feat-name">워터마크 추가</div><div class="feat-desc">텍스트 워터마크 · 투명도/위치</div></div></div>
+      <div class="feat" data-id="split"><div class="feat-icon">⊞</div><div class="feat-text"><div class="feat-name">이미지 분할</div><div class="feat-desc">행×열 그리드로 조각 + ZIP</div></div></div>
+      <div class="feat" data-id="merge"><div class="feat-icon">⊟</div><div class="feat-text"><div class="feat-name">이미지 합치기</div><div class="feat-desc">가로/세로/그리드</div></div></div>
+      <div class="feat" data-id="text"><div class="feat-icon">T</div><div class="feat-text"><div class="feat-name">텍스트 추가</div><div class="feat-desc">위치/크기/색/배경박스</div></div></div>
+      <div class="feat" data-id="upscale"><div class="feat-icon">⇱</div><div class="feat-text"><div class="feat-name">업스케일링</div><div class="feat-desc">2x · 3x · 4x + 샤픈</div></div></div>
+      <!-- 3 local-only features -->
+      <div class="feat" data-id="watermark_remove" data-heavy="1"><div class="feat-icon">🩹</div><div class="feat-text"><div class="feat-name">워터마크 제거 <span class="tag-local">LOCAL</span></div><div class="feat-desc">OpenCV inpainting · 로컬 전용</div></div></div>
+      <div class="feat" data-id="bg_remove" data-heavy="1"><div class="feat-icon">✂️</div><div class="feat-text"><div class="feat-name">배경 제거 <span class="tag-local">LOCAL</span></div><div class="feat-desc">rembg U²-Net AI · 176MB 모델</div></div></div>
+      <div class="feat" data-id="person_remove" data-heavy="1"><div class="feat-icon">👤</div><div class="feat-text"><div class="feat-name">사람 제거 <span class="tag-local">LOCAL</span></div><div class="feat-desc">rembg + inpainting · 로컬 전용</div></div></div>
+    </div>
+
+    <!-- Option panels -->
+    <div id="opt-watermark" class="opt-panel show">
+      <div class="opt-title">💧 워터마크 추가</div>
+      <div class="form-row"><label class="form-label">텍스트</label><input class="form-input" id="wm_text" value="© COMMME"></div>
+      <div class="form-row"><label class="form-label">투명도</label><input type="range" id="wm_opacity" min="0.1" max="1" step="0.05" value="0.5"><span id="wm_opacity_v" style="font-size:.75rem;color:#b3b3b3;width:40px;text-align:right">50%</span></div>
+      <div class="form-row"><label class="form-label">크기(%)</label><input type="range" id="wm_size" min="2" max="20" step="1" value="6"><span id="wm_size_v" style="font-size:.75rem;color:#b3b3b3;width:40px;text-align:right">6%</span></div>
+      <div class="form-row"><label class="form-label">위치</label><select class="form-input" id="wm_pos"><option value="center">중앙</option><option value="br">우하단</option><option value="bl">좌하단</option><option value="tr">우상단</option><option value="tl">좌상단</option><option value="tile">타일 반복</option></select></div>
+      <div class="form-row"><label class="form-label">색상</label><input type="color" id="wm_color" value="#ffffff"></div>
+      <button class="btn btn-go" data-run="watermark">실행</button>
+    </div>
+
+    <div id="opt-split" class="opt-panel">
+      <div class="opt-title">⊞ 이미지 분할</div>
+      <div class="form-row"><label class="form-label">행</label><input type="number" class="form-input" id="sp_rows" value="2" min="1" max="10"></div>
+      <div class="form-row"><label class="form-label">열</label><input type="number" class="form-input" id="sp_cols" value="2" min="1" max="10"></div>
+      <button class="btn btn-go" data-run="split">분할 후 ZIP 다운로드</button>
+    </div>
+
+    <div id="opt-merge" class="opt-panel">
+      <div class="opt-title">⊟ 이미지 합치기</div>
+      <div class="form-row"><label class="form-label">파일</label><input type="file" class="form-input" id="mg_files" accept="image/*" multiple></div>
+      <div class="form-row"><label class="form-label">방향</label><select class="form-input" id="mg_dir"><option value="h">가로</option><option value="v">세로</option><option value="g">그리드</option></select></div>
+      <div class="form-row"><label class="form-label">간격(px)</label><input type="number" class="form-input" id="mg_gap" value="0" min="0" max="200"></div>
+      <button class="btn btn-go" data-run="merge">합치기</button>
+    </div>
+
+    <div id="opt-text" class="opt-panel">
+      <div class="opt-title">T 텍스트 추가</div>
+      <div class="form-row"><label class="form-label">텍스트</label><input class="form-input" id="tx_text" value="HELLO"></div>
+      <div class="form-row"><label class="form-label">X(%)</label><input type="range" id="tx_x" min="0" max="100" value="50"><span id="tx_x_v" style="font-size:.75rem;color:#b3b3b3;width:40px;text-align:right">50</span></div>
+      <div class="form-row"><label class="form-label">Y(%)</label><input type="range" id="tx_y" min="0" max="100" value="50"><span id="tx_y_v" style="font-size:.75rem;color:#b3b3b3;width:40px;text-align:right">50</span></div>
+      <div class="form-row"><label class="form-label">크기(%)</label><input type="range" id="tx_size" min="2" max="30" value="8"><span id="tx_size_v" style="font-size:.75rem;color:#b3b3b3;width:40px;text-align:right">8%</span></div>
+      <div class="form-row"><label class="form-label">색</label><input type="color" id="tx_color" value="#ffffff"></div>
+      <label class="chk-row"><input type="checkbox" id="tx_box"> 배경 박스</label>
+      <button class="btn btn-go" data-run="text">실행</button>
+    </div>
+
+    <div id="opt-upscale" class="opt-panel">
+      <div class="opt-title">⇱ 업스케일링</div>
+      <div class="form-row"><label class="form-label">배율</label><select class="form-input" id="up_scale"><option value="2">2x</option><option value="3">3x</option><option value="4">4x</option></select></div>
+      <label class="chk-row"><input type="checkbox" id="up_sharpen" checked> 샤픈 필터 적용</label>
+      <button class="btn btn-go" data-run="upscale">실행</button>
+    </div>
+
+    <!-- Heavy/local-only shared panel -->
+    <div id="opt-heavy" class="opt-panel">
+      <div class="opt-title" id="opt-heavy-title">🩹 로컬 전용 기능</div>
+      <div class="notice" id="heavyNotice"></div>
+      <button class="btn btn-go" id="heavyBtn">GitHub에서 받기</button>
+    </div>
+
+  </aside>
+</main>
+
+<footer class="footer">
+  <p><a href="https://github.com/commme/image-tools" target="_blank" rel="noopener">GitHub</a> · <a href="https://github.com/commme/image-tools/issues" target="_blank" rel="noopener">버그 제보</a> · MIT License</p>
+  <p>© 2026 COMMME · Built with Claude Code</p>
+</footer>
+
+<div id="toast" class="toast"></div>
+
+<!-- JSZip CDN for split feature -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha512-XMVd28F1oH/O71fzwBnV7HucLxVwtxf26XV8P4wPk26EDxuGZ91N8bsOttmnomcCD3CS5ZMRL50H0GgOHvegtg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+<script>
+(function(){
+  'use strict';
+
+  // ---- Local detection ----
+  const isLocal = ['localhost','127.0.0.1','0.0.0.0',''].includes(location.hostname);
+  const modeBadge = document.getElementById('modeBadge');
+  if (isLocal) {
+    modeBadge.textContent = '💻 로컬 모드 · 전체 기능 사용 가능';
+    modeBadge.classList.add('local');
+  }
+
+  // ---- State ----
+  let currentImage = null;      // Image element
+  let currentFileName = '';
+  let currentFileSize = 0;
+  let currentFeature = 'watermark';
+
+  // ---- DOM ----
+  const $ = (id) => document.getElementById(id);
+  const previewBox = $('preview');
+  const previewCanvas = $('previewCanvas');
+  const dropzone = $('dropzone');
+  const fileInput = $('fileInput');
+  const imgName = $('imgName');
+  const imgSize = $('imgSize');
+  const toast = $('toast');
+
+  // ---- Toast ----
+  function notify(msg, isErr){
+    toast.textContent = msg;
+    toast.className = 'toast show' + (isErr ? ' err' : '');
+    clearTimeout(notify._t);
+    notify._t = setTimeout(()=>{ toast.className='toast'; }, 2400);
+  }
+
+  // ---- File loader ----
+  function loadFile(file){
+    if (!file || !file.type.startsWith('image/')) {
+      notify('이미지 파일만 가능합니다.', true);
+      return;
+    }
+    currentFileName = file.name;
+    currentFileSize = file.size;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        currentImage = img;
+        drawPreview(img);
+        dropzone.classList.add('hidden');
+        previewBox.classList.add('show');
+        imgName.textContent = file.name;
+        imgSize.textContent = `${img.width}×${img.height} · ${(file.size/1024).toFixed(0)}KB`;
+      };
+      img.onerror = () => notify('이미지 로딩 실패', true);
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+  function drawPreview(img){
+    const maxW = 900, maxH = 500;
+    let w = img.width, h = img.height;
+    if (w > maxW) { h = h * (maxW/w); w = maxW; }
+    if (h > maxH) { w = w * (maxH/h); h = maxH; }
+    previewCanvas.width = w; previewCanvas.height = h;
+    previewCanvas.getContext('2d').drawImage(img, 0, 0, w, h);
+  }
+  // Drag & drop
+  ['dragenter','dragover'].forEach(ev => dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.add('drag-over'); }));
+  ['dragleave','drop'].forEach(ev => dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('drag-over'); }));
+  dropzone.addEventListener('drop', e => { if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]); });
+  dropzone.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', e => { if (e.target.files[0]) loadFile(e.target.files[0]); });
+  $('changeBtn').addEventListener('click', () => { fileInput.value=''; fileInput.click(); });
+
+  // ---- Feature switcher ----
+  const featList = $('featList');
+  const HEAVY = {
+    watermark_remove: {title:'🩹 워터마크 제거', body:'OpenCV Telea inpainting이 필요한 무거운 처리라 브라우저에서 실행되지 않습니다.'},
+    bg_remove:        {title:'✂️ 배경 제거',   body:'rembg U²-Net AI 모델(176MB)이 필요합니다. 브라우저 버전은 준비 중입니다.'},
+    person_remove:    {title:'👤 사람 제거',   body:'rembg + OpenCV inpainting이 필요한 무거운 처리라 브라우저에서 실행되지 않습니다.'}
+  };
+  featList.addEventListener('click', e => {
+    const feat = e.target.closest('.feat'); if (!feat) return;
+    document.querySelectorAll('.feat').forEach(f => f.classList.remove('active'));
+    feat.classList.add('active');
+    const id = feat.dataset.id;
+    currentFeature = id;
+    document.querySelectorAll('.opt-panel').forEach(p => p.classList.remove('show'));
+    if (feat.dataset.heavy) {
+      const h = HEAVY[id];
+      $('opt-heavy-title').textContent = h.title;
+      const notice = $('heavyNotice');
+      const btn = $('heavyBtn');
+      if (isLocal) {
+        notice.innerHTML = `${h.body}<br><br>✅ 로컬 환경 감지됨. <a href="http://localhost:5001" target="_blank" rel="noopener">http://localhost:5001</a>에서 Flask 서버가 실행 중이면 거기서 이 기능을 사용할 수 있습니다.`;
+        btn.textContent = 'Flask 앱 열기 (localhost:5001)';
+        btn.onclick = () => window.open('http://localhost:5001', '_blank', 'noopener');
+      } else {
+        notice.innerHTML = `${h.body}<br><br>⚠️ <strong>로컬 환경 전용</strong>입니다. GitHub에서 코드를 받아 <code>start.bat</code> (Windows) 또는 <code>./start.sh</code> (Mac/Linux) 실행 후 사용하세요.`;
+        btn.textContent = 'GitHub에서 받기';
+        btn.onclick = () => window.open('https://github.com/commme/image-tools', '_blank', 'noopener');
+      }
+      $('opt-heavy').classList.add('show');
+    } else {
+      const panel = $('opt-' + id);
+      if (panel) panel.classList.add('show');
+    }
+  });
+
+  // ---- Range live values ----
+  function bindRange(id, vId, fmt){
+    const el = $(id), v = $(vId);
+    if (!el || !v) return;
+    const upd = () => { v.textContent = fmt ? fmt(el.value) : el.value; };
+    el.addEventListener('input', upd); upd();
+  }
+  bindRange('wm_opacity','wm_opacity_v', x => Math.round(x*100)+'%');
+  bindRange('wm_size','wm_size_v', x => x+'%');
+  bindRange('tx_x','tx_x_v');
+  bindRange('tx_y','tx_y_v');
+  bindRange('tx_size','tx_size_v', x => x+'%');
+
+  // ---- Run buttons ----
+  document.body.addEventListener('click', e => {
+    const btn = e.target.closest('[data-run]'); if (!btn) return;
+    const action = btn.dataset.run;
+    if (!currentImage) { notify('먼저 이미지를 올려주세요.', true); return; }
+    try {
+      if (action === 'watermark') runWatermark();
+      else if (action === 'split') runSplit();
+      else if (action === 'merge') runMerge();
+      else if (action === 'text') runText();
+      else if (action === 'upscale') runUpscale();
+    } catch(err) {
+      console.error(err);
+      notify('처리 중 오류: ' + err.message, true);
+    }
+  });
+
+  // ---- Helpers ----
+  function makeCanvas(w, h){ const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
+  function showResult(canvas){
+    previewCanvas.width = canvas.width;
+    previewCanvas.height = canvas.height;
+    const ctx = previewCanvas.getContext('2d');
+    // fit display size
+    const maxW = 900, maxH = 500;
+    let w = canvas.width, h = canvas.height;
+    if (w > maxW) { h = h * (maxW/w); w = maxW; }
+    if (h > maxH) { w = w * (maxH/h); h = maxH; }
+    previewCanvas.width = w; previewCanvas.height = h;
+    ctx.drawImage(canvas, 0, 0, w, h);
+    // store full-res for download
+    previewCanvas._full = canvas;
+  }
+  function downloadCanvas(canvas, name){
+    canvas.toBlob(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = name;
+      document.body.appendChild(a); a.click();
+      setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 100);
+    }, 'image/png');
+  }
+  function baseName(){
+    const n = currentFileName || 'image';
+    return n.replace(/\.[^.]+$/, '');
+  }
+
+  // ---- Watermark ----
+  function runWatermark(){
+    const text = $('wm_text').value || '©';
+    const opacity = parseFloat($('wm_opacity').value);
+    const sizePct = parseFloat($('wm_size').value);
+    const pos = $('wm_pos').value;
+    const color = $('wm_color').value;
+    const canvas = makeCanvas(currentImage.width, currentImage.height);
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(currentImage, 0, 0);
+    const fontPx = Math.max(16, Math.round(canvas.width * sizePct / 100));
+    ctx.font = `700 ${fontPx}px "Noto Sans KR", Arial, sans-serif`;
+    ctx.fillStyle = color;
+    ctx.globalAlpha = opacity;
+    ctx.textBaseline = 'middle';
+    const m = ctx.measureText(text);
+    const pad = fontPx * 0.5;
+    if (pos === 'tile') {
+      ctx.save();
+      ctx.globalAlpha = opacity * 0.8;
+      const stepX = m.width + fontPx * 2;
+      const stepY = fontPx * 3;
+      for (let y = fontPx; y < canvas.height + stepY; y += stepY) {
+        for (let x = -stepX; x < canvas.width + stepX; x += stepX) {
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate(-Math.PI/8);
+          ctx.fillText(text, 0, 0);
+          ctx.restore();
+        }
+      }
+      ctx.restore();
+    } else {
+      let x = canvas.width/2 - m.width/2, y = canvas.height/2;
+      if (pos === 'br') { x = canvas.width - m.width - pad; y = canvas.height - pad; }
+      else if (pos === 'bl') { x = pad; y = canvas.height - pad; }
+      else if (pos === 'tr') { x = canvas.width - m.width - pad; y = pad + fontPx/2; }
+      else if (pos === 'tl') { x = pad; y = pad + fontPx/2; }
+      ctx.textBaseline = (pos==='br'||pos==='bl') ? 'bottom' : 'middle';
+      ctx.fillText(text, x, y);
+    }
+    showResult(canvas);
+    downloadCanvas(canvas, `${baseName()}_watermark.png`);
+    notify('완료!');
+  }
+
+  // ---- Split ----
+  async function runSplit(){
+    const rows = Math.max(1, parseInt($('sp_rows').value) || 2);
+    const cols = Math.max(1, parseInt($('sp_cols').value) || 2);
+    if (typeof JSZip === 'undefined') { notify('JSZip 로딩 실패. 새로고침 후 재시도.', true); return; }
+    const zip = new JSZip();
+    const tw = Math.floor(currentImage.width / cols);
+    const th = Math.floor(currentImage.height / rows);
+    const pieces = [];
+    for (let r=0; r<rows; r++){
+      for (let c=0; c<cols; c++){
+        const canvas = makeCanvas(tw, th);
+        canvas.getContext('2d').drawImage(currentImage, c*tw, r*th, tw, th, 0, 0, tw, th);
+        const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+        zip.file(`piece_${r+1}_${c+1}.png`, blob);
+        pieces.push(canvas);
+      }
+    }
+    // show first piece as preview
+    if (pieces[0]) showResult(pieces[0]);
+    const blob = await zip.generateAsync({type:'blob'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `${baseName()}_split_${rows}x${cols}.zip`;
+    document.body.appendChild(a); a.click();
+    setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 100);
+    notify(`${rows*cols}조각 ZIP 다운로드 완료`);
+  }
+
+  // ---- Merge ----
+  async function runMerge(){
+    const files = $('mg_files').files;
+    if (!files || files.length < 2) { notify('2장 이상 선택해주세요.', true); return; }
+    const dir = $('mg_dir').value;
+    const gap = Math.max(0, parseInt($('mg_gap').value) || 0);
+    const imgs = await Promise.all(Array.from(files).map(f => new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = e => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = e.target.result; };
+      r.onerror = rej;
+      r.readAsDataURL(f);
+    })));
+    let canvas;
+    if (dir === 'h') {
+      const h = Math.max(...imgs.map(i => i.height));
+      const w = imgs.reduce((s,i)=>s+i.width, 0) + gap * (imgs.length-1);
+      canvas = makeCanvas(w, h);
+      const ctx = canvas.getContext('2d');
+      let x = 0;
+      imgs.forEach(i => { ctx.drawImage(i, x, 0); x += i.width + gap; });
+    } else if (dir === 'v') {
+      const w = Math.max(...imgs.map(i => i.width));
+      const h = imgs.reduce((s,i)=>s+i.height, 0) + gap * (imgs.length-1);
+      canvas = makeCanvas(w, h);
+      const ctx = canvas.getContext('2d');
+      let y = 0;
+      imgs.forEach(i => { ctx.drawImage(i, 0, y); y += i.height + gap; });
+    } else {
+      const cols = Math.ceil(Math.sqrt(imgs.length));
+      const rows = Math.ceil(imgs.length / cols);
+      const cw = Math.max(...imgs.map(i => i.width));
+      const ch = Math.max(...imgs.map(i => i.height));
+      canvas = makeCanvas(cw*cols + gap*(cols-1), ch*rows + gap*(rows-1));
+      const ctx = canvas.getContext('2d');
+      imgs.forEach((i, idx) => {
+        const r = Math.floor(idx/cols), c = idx%cols;
+        ctx.drawImage(i, c*(cw+gap), r*(ch+gap));
+      });
+    }
+    showResult(canvas);
+    downloadCanvas(canvas, `${baseName()}_merge.png`);
+    notify(`${imgs.length}장 합치기 완료`);
+  }
+
+  // ---- Text overlay ----
+  function runText(){
+    const text = $('tx_text').value || '';
+    const xPct = parseFloat($('tx_x').value);
+    const yPct = parseFloat($('tx_y').value);
+    const sizePct = parseFloat($('tx_size').value);
+    const color = $('tx_color').value;
+    const box = $('tx_box').checked;
+    const canvas = makeCanvas(currentImage.width, currentImage.height);
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(currentImage, 0, 0);
+    const fontPx = Math.max(16, Math.round(canvas.width * sizePct / 100));
+    ctx.font = `700 ${fontPx}px "Noto Sans KR", Arial, sans-serif`;
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'center';
+    const x = canvas.width * xPct / 100;
+    const y = canvas.height * yPct / 100;
+    if (box) {
+      const m = ctx.measureText(text);
+      const padX = fontPx * 0.5, padY = fontPx * 0.25;
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      ctx.fillRect(x - m.width/2 - padX, y - fontPx/2 - padY, m.width + padX*2, fontPx + padY*2);
+    }
+    ctx.fillStyle = color;
+    ctx.fillText(text, x, y);
+    showResult(canvas);
+    downloadCanvas(canvas, `${baseName()}_text.png`);
+    notify('완료!');
+  }
+
+  // ---- Upscale ----
+  function runUpscale(){
+    const scale = parseInt($('up_scale').value);
+    const doSharpen = $('up_sharpen').checked;
+    const w = currentImage.width * scale;
+    const h = currentImage.height * scale;
+    if (w * h > 40_000_000) {
+      notify('결과 크기가 너무 큽니다(4000만 픽셀 초과). 배율을 낮춰주세요.', true);
+      return;
+    }
+    const canvas = makeCanvas(w, h);
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(currentImage, 0, 0, w, h);
+    if (doSharpen) sharpen(ctx, w, h);
+    showResult(canvas);
+    downloadCanvas(canvas, `${baseName()}_upscale_${scale}x.png`);
+    notify(`${scale}x 업스케일 완료`);
+  }
+  function sharpen(ctx, w, h){
+    // 3x3 sharpen kernel: [0,-1,0 / -1,5,-1 / 0,-1,0]
+    const src = ctx.getImageData(0, 0, w, h);
+    const dst = ctx.createImageData(w, h);
+    const s = src.data, d = dst.data;
+    for (let y=1; y<h-1; y++){
+      for (let x=1; x<w-1; x++){
+        const i = (y*w + x) * 4;
+        for (let c=0; c<3; c++){
+          const v = 5*s[i+c]
+                  - s[i+c - 4]
+                  - s[i+c + 4]
+                  - s[i+c - w*4]
+                  - s[i+c + w*4];
+          d[i+c] = Math.max(0, Math.min(255, v));
+        }
+        d[i+3] = s[i+3];
+      }
+    }
+    ctx.putImageData(dst, 0, 0);
+  }
+
+})();
+</script>
+</body>
+</html>
