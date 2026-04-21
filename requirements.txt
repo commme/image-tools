@@ -1,0 +1,4 @@
+Pillow>=10.0,<12
+flask>=3.0,<4
+rembg[cpu]>=2.0,<3
+opencv-python-headless>=4.0,<5
