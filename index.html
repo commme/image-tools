@@ -230,9 +230,10 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
     </div>
 
     <div id="opt-watermark_remove" class="opt-panel">
-      <div class="opt-title">🩹 워터마크 제거</div>
-      <div class="notice">미리보기에서 워터마크 영역을 <strong>마우스로 드래그하여 사각형 선택</strong> 후 실행하세요. OpenCV Telea inpainting으로 자동 복원합니다.</div>
-      <div class="form-row"><label class="form-label">반경(px)</label><input type="range" id="wmr_radius" min="3" max="20" value="5"><span id="wmr_radius_v" style="font-size:.75rem;color:#b3b3b3;width:40px;text-align:right">5</span></div>
+      <div class="opt-title">🩹 워터마크 제거 (브러쉬)</div>
+      <div class="notice">💡 미리보기 위에서 <strong>마우스로 워터마크를 칠하세요</strong> (드래그 = 브러쉬 페인트). 칠한 영역을 주변 색으로 채웁니다. OpenCV 불필요 — 100% JS.</div>
+      <div class="form-row"><label class="form-label">브러쉬 크기</label><input type="range" id="wmr_brush" min="5" max="120" value="30"><span id="wmr_brush_v" style="font-size:.75rem;color:#b3b3b3;width:40px;text-align:right">30</span></div>
+      <button class="btn btn-sub" id="wmr_clear" type="button" style="width:100%;margin-bottom:8px">🗑 마스크 지우기</button>
       <button class="btn btn-go" data-run="watermark_remove">👁 제거 미리보기</button>
     </div>
 
@@ -283,9 +284,12 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
   let currentFileSize = 0;
   let currentFeature = 'watermark';
 
-  // Rect selection (for watermark_remove)
-  let selRect = null; // {x,y,w,h} in original image coords
+  // Rect selection (legacy, kept null)
+  let selRect = null;
   let dragStart = null;
+
+  // Brush mask for watermark removal (off-screen canvas with painted regions = white)
+  let brushMaskCanvas = null;
 
   // Drag position for watermark/text (in image pixel coords; null = use preset/sliders)
   let wmDragXY = null; // {x,y}
@@ -430,57 +434,80 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
     const sy = overlay.height / r.height;
     return { x: (e.clientX - r.left) * sx, y: (e.clientY - r.top) * sy };
   }
-  // If a committed result is showing and user starts dragging text/watermark, restore
-  // preview to the ORIGINAL image so the previously-committed text/watermark is removed.
-  // The new position is shown as a ghost overlay only — user must click 미리보기 again to commit.
-  function restoreOriginalForMove(){
-    if (!currentImage) return;
-    if (pendingResult) {
-      drawPreview(currentImage); // resets previewCanvas to original
-      clearPendingResult();
+  // Brush helpers ----
+  function ensureBrushMask(){
+    if (!currentImage) return null;
+    if (!brushMaskCanvas || brushMaskCanvas.width !== currentImage.width || brushMaskCanvas.height !== currentImage.height) {
+      brushMaskCanvas = makeCanvas(currentImage.width, currentImage.height);
     }
+    return brushMaskCanvas;
   }
+  function clearBrushMask(){
+    if (brushMaskCanvas) {
+      brushMaskCanvas.getContext('2d').clearRect(0, 0, brushMaskCanvas.width, brushMaskCanvas.height);
+    }
+    clearOverlay();
+  }
+  function paintBrush(p){
+    const mask = ensureBrushMask(); if (!mask) return;
+    const r = parseInt($('wmr_brush')?.value || '30');
+    // Brush radius is given in display px; scale to image px
+    const dispR = overlay.getBoundingClientRect();
+    const scale = overlay.width / dispR.width;
+    const rPx = r * scale;
+    const mctx = mask.getContext('2d');
+    mctx.fillStyle = '#fff';
+    mctx.beginPath(); mctx.arc(p.x, p.y, rPx, 0, Math.PI*2); mctx.fill();
+    // Visualize on overlay
+    const octx = overlay.getContext('2d');
+    octx.fillStyle = 'rgba(255, 50, 50, 0.45)';
+    octx.beginPath(); octx.arc(p.x, p.y, rPx, 0, Math.PI*2); octx.fill();
+  }
+
+  // LIVE preview render for text/watermark drag (writes directly to previewCanvas).
+  // No overlay ghost — eliminates "background disappears" race.
+  function liveRenderWatermark(){
+    if (!currentImage || !wmDragXY) return;
+    const sel = $('wm_pos'); if (sel) sel.value = 'drag';
+    runWatermark(); // commits to previewCanvas + sets pendingResult
+  }
+  function liveRenderText(){
+    if (!currentImage || !txDragXY) return;
+    runText(); // commits + sets pendingResult
+  }
+
   overlay.addEventListener('mousedown', e => {
     const p = overlayPoint(e);
     if (currentFeature === 'watermark_remove') {
       dragStart = p;
-      selRect = { x: p.x, y: p.y, w: 0, h: 0 };
+      paintBrush(p);
     } else if (currentFeature === 'watermark') {
-      restoreOriginalForMove();
       wmDragXY = { x: p.x, y: p.y };
-      const sel = $('wm_pos'); if (sel) sel.value = 'drag';
-      drawWmPreview();
       dragStart = p;
+      liveRenderWatermark();
     } else if (currentFeature === 'text') {
-      restoreOriginalForMove();
       txDragXY = { x: p.x, y: p.y };
       const xRange = $('tx_x'), yRange = $('tx_y');
       if (xRange) { xRange.value = Math.round(p.x / overlay.width * 100); xRange.dispatchEvent(new Event('input')); }
       if (yRange) { yRange.value = Math.round(p.y / overlay.height * 100); yRange.dispatchEvent(new Event('input')); }
-      drawTxPreview();
       dragStart = p;
+      liveRenderText();
     }
   });
   overlay.addEventListener('mousemove', e => {
     if (!dragStart) return;
     const p = overlayPoint(e);
     if (currentFeature === 'watermark_remove') {
-      selRect = {
-        x: Math.min(dragStart.x, p.x),
-        y: Math.min(dragStart.y, p.y),
-        w: Math.abs(p.x - dragStart.x),
-        h: Math.abs(p.y - dragStart.y)
-      };
-      drawSelOverlay();
+      paintBrush(p);
     } else if (currentFeature === 'watermark') {
       wmDragXY = { x: p.x, y: p.y };
-      drawWmPreview();
+      liveRenderWatermark();
     } else if (currentFeature === 'text') {
       txDragXY = { x: p.x, y: p.y };
       const xRange = $('tx_x'), yRange = $('tx_y');
       if (xRange) { xRange.value = Math.round(p.x / overlay.width * 100); xRange.dispatchEvent(new Event('input')); }
       if (yRange) { yRange.value = Math.round(p.y / overlay.height * 100); yRange.dispatchEvent(new Event('input')); }
-      drawTxPreview();
+      liveRenderText();
     }
   });
   overlay.addEventListener('mouseup', () => { dragStart = null; });
@@ -548,15 +575,15 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
     if (id === 'watermark_remove') {
       overlay.classList.add('active');
       overlay.classList.remove('move-mode');
-      drawSelOverlay();
+      clearBrushMask();
     } else if (id === 'watermark') {
       overlay.classList.add('active');
       overlay.classList.add('move-mode');
-      drawWmPreview();
+      clearOverlay();
     } else if (id === 'text') {
       overlay.classList.add('active');
       overlay.classList.add('move-mode');
-      drawTxPreview();
+      clearOverlay();
     } else {
       overlay.classList.remove('active');
       overlay.classList.remove('move-mode');
@@ -577,12 +604,14 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
   bindRange('tx_y','tx_y_v');
   bindRange('tx_size','tx_size_v', x => x+'%');
   bindRange('wmr_radius','wmr_radius_v');
+  bindRange('wmr_brush','wmr_brush_v');
   bindRange('pr_radius','pr_radius_v');
+  $('wmr_clear')?.addEventListener('click', clearBrushMask);
 
   // Live preview refresh for watermark/text when form values change
   function refreshLivePreview(){
-    if (currentFeature === 'watermark') drawWmPreview();
-    else if (currentFeature === 'text') drawTxPreview();
+    if (currentFeature === 'watermark') liveRenderWatermark();
+    else if (currentFeature === 'text') liveRenderText();
   }
   ['wm_text','wm_font','wm_weight','wm_italic','wm_size','wm_color','wm_opacity','wm_pos'].forEach(id => {
     const el = $(id); if (el) el.addEventListener('input', refreshLivePreview);
@@ -916,71 +945,102 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
   }
 
   // ---- Watermark removal (OpenCV inpaint with rect mask) ----
+  // Pure-JS edge-pull inpainting. NO OpenCV. NO 9MB download.
+  // For each masked pixel, scan up/down/left/right until non-masked pixel is found,
+  // average those colors. Fast (~1-3s for typical images), no buffering hangs.
   async function runWatermarkRemove(){
-    console.log('[wm-remove] start, selRect=', selRect);
-    if (!selRect || selRect.w < 4 || selRect.h < 4) {
-      notify('미리보기에서 워터마크 영역을 드래그하여 선택하세요.', true);
+    console.log('[wm-remove] start');
+    if (!brushMaskCanvas) {
+      notify('미리보기에서 워터마크를 브러쉬로 칠하세요.', true);
       return;
     }
-    showLoader('OpenCV.js 로딩 중...', '첫 실행 시 ~9MB 다운로드. 다음 실행은 캐시 사용.');
-    let cv;
-    try {
-      cv = await loadOpenCV();
-      console.log('[wm-remove] OpenCV loaded, version:', cv.getBuildInformation ? 'OK' : 'partial');
-    } catch (e) {
-      hideLoader();
-      console.error('[wm-remove] OpenCV load failed:', e);
-      notify('OpenCV.js 로드 실패: ' + (e.message || e) + ' (네트워크 확인 후 새로고침)', true);
+    const W = currentImage.width, H = currentImage.height;
+    const mctx = brushMaskCanvas.getContext('2d');
+    const maskData = mctx.getImageData(0, 0, W, H).data;
+    // Quick check: is anything painted?
+    let painted = false;
+    for (let i = 3; i < maskData.length; i += 4) {
+      if (maskData[i] > 0) { painted = true; break; }
+    }
+    if (!painted) {
+      notify('미리보기에서 워터마크를 브러쉬로 칠하세요.', true);
       return;
     }
-    showLoader('inpainting 실행 중...', '잠시만 기다려주세요.');
+
+    showLoader('워터마크 제거 중...', '주변 픽셀로 채우는 중입니다.');
     await new Promise(r => setTimeout(r, 30));
 
-    const W = currentImage.width, H = currentImage.height;
-    let srcMat, maskMat, rgbMat, dstMat, outMat;
     try {
       const src = makeCanvas(W, H);
-      src.getContext('2d').drawImage(currentImage, 0, 0);
+      const sctx = src.getContext('2d');
+      sctx.drawImage(currentImage, 0, 0);
+      const imgData = sctx.getImageData(0, 0, W, H);
+      const data = imgData.data;
 
-      srcMat = cv.imread(src);
-      // FIX: cv.Mat.zeros is a static factory — must NOT be called with `new`
-      maskMat = cv.Mat.zeros(H, W, cv.CV_8UC1);
-      const x = Math.max(0, Math.round(selRect.x));
-      const y = Math.max(0, Math.round(selRect.y));
-      const w = Math.min(W - x, Math.round(selRect.w));
-      const h = Math.min(H - y, Math.round(selRect.h));
-      const rect = new cv.Rect(x, y, w, h);
-      const roi = maskMat.roi(rect);
-      roi.setTo(new cv.Scalar(255));
-      roi.delete();
+      // mask[i] = 1 if pixel is to be inpainted (alpha > 0 in brush mask)
+      const mask = new Uint8Array(W * H);
+      for (let i = 0; i < W * H; i++) {
+        if (maskData[i * 4 + 3] > 0) mask[i] = 1;
+      }
 
-      // Convert RGBA → RGB for inpaint
-      rgbMat = new cv.Mat();
-      cv.cvtColor(srcMat, rgbMat, cv.COLOR_RGBA2RGB);
-      dstMat = new cv.Mat();
-      const radius = parseInt($('wmr_radius').value) || 5;
-      cv.inpaint(rgbMat, maskMat, dstMat, radius, cv.INPAINT_TELEA);
-      outMat = new cv.Mat();
-      cv.cvtColor(dstMat, outMat, cv.COLOR_RGB2RGBA);
+      const out = new Uint8ClampedArray(data);
 
-      const out = makeCanvas(W, H);
-      cv.imshow(out, outMat);
+      for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+          const i = y * W + x;
+          if (!mask[i]) continue;
+          let r = 0, g = 0, b = 0, n = 0;
+          // scan left
+          for (let xx = x - 1; xx >= 0; xx--) {
+            if (!mask[y * W + xx]) {
+              const p = (y * W + xx) * 4;
+              r += data[p]; g += data[p + 1]; b += data[p + 2]; n++; break;
+            }
+          }
+          // scan right
+          for (let xx = x + 1; xx < W; xx++) {
+            if (!mask[y * W + xx]) {
+              const p = (y * W + xx) * 4;
+              r += data[p]; g += data[p + 1]; b += data[p + 2]; n++; break;
+            }
+          }
+          // scan up
+          for (let yy = y - 1; yy >= 0; yy--) {
+            if (!mask[yy * W + x]) {
+              const p = (yy * W + x) * 4;
+              r += data[p]; g += data[p + 1]; b += data[p + 2]; n++; break;
+            }
+          }
+          // scan down
+          for (let yy = y + 1; yy < H; yy++) {
+            if (!mask[yy * W + x]) {
+              const p = (yy * W + x) * 4;
+              r += data[p]; g += data[p + 1]; b += data[p + 2]; n++; break;
+            }
+          }
+          if (n > 0) {
+            const op = i * 4;
+            out[op] = r / n;
+            out[op + 1] = g / n;
+            out[op + 2] = b / n;
+            out[op + 3] = 255;
+          }
+        }
+      }
 
-      selRect = null;
-      showResult(out);
-      setPendingResult(out, `${baseName()}_watermark_removed.png`);
+      const result = makeCanvas(W, H);
+      const rctx = result.getContext('2d');
+      rctx.putImageData(new ImageData(out, W, H), 0, 0);
+
+      clearBrushMask();
+      showResult(result);
+      setPendingResult(result, `${baseName()}_watermark_removed.png`);
       hideLoader();
       notify('워터마크 제거 완료 — 확인 후 다운로드');
     } catch (e) {
       console.error('[watermark_remove]', e);
       hideLoader();
       notify('워터마크 제거 실패: ' + (e.message || e), true);
-    } finally {
-      try { srcMat && srcMat.delete(); } catch(_){}
-      try { maskMat && maskMat.delete(); } catch(_){}
-      try { rgbMat && rgbMat.delete(); } catch(_){}
-      try { dstMat && dstMat.delete(); } catch(_){}
-      try { outMat && outMat.delete(); } catch(_){}
     }
   }
 
