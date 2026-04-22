@@ -160,9 +160,9 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
       <div class="feat" data-id="merge"><div class="feat-icon">⊟</div><div class="feat-text"><div class="feat-name">이미지 합치기</div><div class="feat-desc">가로/세로/그리드</div></div></div>
       <div class="feat" data-id="text"><div class="feat-icon">T</div><div class="feat-text"><div class="feat-name">텍스트 추가</div><div class="feat-desc">위치/크기/색/배경박스</div></div></div>
       <div class="feat" data-id="upscale"><div class="feat-icon">⇱</div><div class="feat-text"><div class="feat-name">업스케일링</div><div class="feat-desc">2x · 3x · 4x + 샤픈</div></div></div>
-      <div class="feat" data-id="watermark_remove"><div class="feat-icon">🩹</div><div class="feat-text"><div class="feat-name">워터마크 제거 <span class="tag-ai">CV</span></div><div class="feat-desc">영역 드래그 → OpenCV inpaint</div></div></div>
-      <div class="feat" data-id="bg_remove"><div class="feat-icon">✂️</div><div class="feat-text"><div class="feat-name">배경 제거 <span class="tag-ai">AI</span></div><div class="feat-desc">U²-Net 브라우저 ONNX · 투명 PNG</div></div></div>
-      <div class="feat" data-id="person_remove"><div class="feat-icon">👤</div><div class="feat-text"><div class="feat-name">사람 제거 <span class="tag-ai">AI</span></div><div class="feat-desc">U²-Net 마스크 + OpenCV inpaint</div></div></div>
+      <div class="feat" data-id="watermark_remove"><div class="feat-icon">🩹</div><div class="feat-text"><div class="feat-name">워터마크 제거</div><div class="feat-desc">브러쉬로 칠해서 자동 제거</div></div></div>
+      <div class="feat" data-id="bg_remove"><div class="feat-icon">✂️</div><div class="feat-text"><div class="feat-name">배경 제거 <span class="tag-ai">AI</span></div><div class="feat-desc">자동 분리 · 투명 PNG 출력</div></div></div>
+      <div class="feat" data-id="person_remove"><div class="feat-icon">👤</div><div class="feat-text"><div class="feat-name">사람 제거 <span class="tag-ai">AI</span></div><div class="feat-desc">자동 마스크 + 배경 자동 채우기</div></div></div>
     </div>
 
     <!-- Option panels -->
@@ -234,7 +234,7 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
 
     <div id="opt-watermark_remove" class="opt-panel">
       <div class="opt-title">🩹 워터마크 제거 (브러쉬)</div>
-      <div class="notice">💡 미리보기 위에서 <strong>마우스로 워터마크를 칠하세요</strong> (드래그 = 브러쉬 페인트). 칠한 영역을 주변 색으로 채웁니다. OpenCV 불필요 — 100% JS.</div>
+      <div class="notice">💡 미리보기 위에서 <strong>마우스로 워터마크를 칠하세요</strong> (드래그 = 브러쉬 페인트). 칠한 영역을 주변 색으로 자동으로 채웁니다.</div>
       <div class="form-row"><label class="form-label">브러쉬 크기</label><input type="range" id="wmr_brush" min="5" max="120" value="30"><span id="wmr_brush_v" style="font-size:.75rem;color:#b3b3b3;width:40px;text-align:right">30</span></div>
       <button class="btn btn-sub" id="wmr_clear" type="button" style="width:100%;margin-bottom:8px">🗑 마스크 지우기</button>
       <button class="btn btn-go" data-run="watermark_remove">👁 제거 미리보기</button>
@@ -242,13 +242,13 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
 
     <div id="opt-bg_remove" class="opt-panel">
       <div class="opt-title">✂️ 배경 제거 (AI)</div>
-      <div class="notice"><strong>U²-Net</strong> 모델이 브라우저에서 직접 실행됩니다. 첫 실행 시 모델(~40MB) 다운로드 → 이후 캐시. 결과는 투명 PNG.</div>
+      <div class="notice">AI가 브라우저에서 직접 배경을 분리합니다. 첫 실행 시 모델 다운로드 (~80MB) → 이후 캐시 사용. 결과는 투명 PNG.</div>
       <button class="btn btn-go" data-run="bg_remove">👁 배경 제거 미리보기</button>
     </div>
 
     <div id="opt-person_remove" class="opt-panel">
       <div class="opt-title">👤 사람 제거 (AI + CV)</div>
-      <div class="notice">U²-Net으로 사람 마스크 추출 → OpenCV inpaint로 그 영역을 주변 배경으로 복원합니다.</div>
+      <div class="notice">AI가 사람을 인식해서 분리한 뒤, 그 자리를 주변 배경으로 자연스럽게 복원합니다.</div>
       <div class="form-row"><label class="form-label">반경(px)</label><input type="range" id="pr_radius" min="3" max="30" value="10"><span id="pr_radius_v" style="font-size:.75rem;color:#b3b3b3;width:40px;text-align:right">10</span></div>
       <button class="btn btn-go" data-run="person_remove">👁 사람 제거 미리보기</button>
     </div>
@@ -769,29 +769,6 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
   }
   function baseName(){ return (currentFileName || 'image').replace(/\.[^.]+$/, ''); }
 
-  // ---- Lazy loaders ----
-  let opencvPromise = null;
-  function loadOpenCV(){
-    if (window.cv && window.cv.Mat) return Promise.resolve(window.cv);
-    if (opencvPromise) return opencvPromise;
-    opencvPromise = new Promise((resolve, reject) => {
-      const s = document.createElement('script');
-      s.src = 'https://docs.opencv.org/4.10.0/opencv.js';
-      s.async = true;
-      s.onload = () => {
-        if (window.cv && window.cv.Mat) return resolve(window.cv);
-        // cv loads asynchronously; wait for runtime
-        let waited = 0;
-        const t = setInterval(() => {
-          if (window.cv && window.cv.Mat) { clearInterval(t); resolve(window.cv); }
-          else if ((waited += 100) > 30000) { clearInterval(t); opencvPromise = null; reject(new Error('OpenCV 로딩 시간 초과')); }
-        }, 100);
-      };
-      s.onerror = () => { opencvPromise = null; reject(new Error('OpenCV.js 로드 실패 — 네트워크 확인')); };
-      document.head.appendChild(s);
-    });
-    return opencvPromise;
-  }
 
   // ---- Watermark ----
   function runWatermark(){
@@ -1111,14 +1088,14 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
   // ---- Background removal (browser ONNX U²-Net) ----
   async function runBgRemove(){
     if (!currentImage) { notify('이미지를 먼저 선택하세요.', true); return; }
-    showLoader('AI 모델 로딩 중...', '첫 실행 시 U²-Net 모델(~40MB) 다운로드. 다음 실행은 캐시 사용.');
+    showLoader('AI 준비 중...', '첫 실행 시 모델 다운로드 (~80MB). 다음 실행은 캐시 사용.');
     let removeBackground;
     try {
       removeBackground = await window.__loadBgRemoval();
     } catch (e) {
       hideLoader();
       console.error('[bg_remove] loader failed:', e);
-      notify('배경 제거 모델 로드 실패: ' + (e.message || e) + ' (네트워크 확인 후 새로고침)', true);
+      notify('AI 준비 실패 — 네트워크 확인 후 새로고침해주세요.', true);
       return;
     }
     try {
@@ -1131,7 +1108,7 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
       const resultBlob = await removeBackground(blob, {
         progress: (p) => {
           const pct = p && p.progress ? Math.round(p.progress) : 0;
-          showLoader('AI 모델 다운로드 중...', `${p?.file || ''} ${pct}%`);
+          showLoader('AI 준비 중...', `다운로드 ${pct}%`);
           console.log('[bg-progress]', p);
         }
       });
@@ -1155,14 +1132,14 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
   // ---- Person removal: U²-Net mask + pure JS edge-pull inpainting (NO OpenCV) ----
   async function runPersonRemove(){
     if (!currentImage) { notify('이미지를 먼저 선택하세요.', true); return; }
-    showLoader('AI 모델 로딩 중...', '첫 실행 시 U²-Net(~40MB) 다운로드. 다음 실행은 캐시 사용.');
+    showLoader('AI 준비 중...', '첫 실행 시 모델 다운로드 (~80MB). 다음 실행은 캐시 사용.');
     let removeBackground;
     try {
       removeBackground = await window.__loadBgRemoval();
     } catch (e) {
       hideLoader();
       console.error('[person_remove] loader failed:', e);
-      notify('AI 모델 로드 실패: ' + (e.message || e) + ' (네트워크 확인 후 새로고침)', true);
+      notify('AI 준비 실패 — 네트워크 확인 후 새로고침해주세요.', true);
       return;
     }
     try {
@@ -1175,7 +1152,7 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
       const cutBlob = await removeBackground(srcBlob, {
         progress: (p) => {
           const pct = p && p.progress ? Math.round(p.progress) : 0;
-          showLoader('AI 모델 다운로드 중...', `${p?.file || ''} ${pct}%`);
+          showLoader('AI 준비 중...', `다운로드 ${pct}%`);
           console.log('[person-progress]', p);
         }
       });

@@ -14,9 +14,9 @@
 | 3 | 이미지 합치기 | ✅ | ✅ | 가로/세로/그리드 |
 | 4 | 텍스트 추가 | ✅ | ✅ | 위치/색/배경박스 |
 | 5 | 업스케일링 | ✅ | ✅ | 2x/3x/4x + 샤픈 |
-| 6 | 워터마크 제거 | ✅ | ✅ | 웹: 브러쉬 + 순수 JS edge-pull inpainting (의존성 0) · 로컬: opencv-python |
-| 7 | 배경 제거 | ✅ | ✅ | 웹: transformers.js + briaai/RMBG-1.4 SOTA (HF CDN, ~80MB) · 로컬: rembg |
-| 8 | 사람 제거 | ✅ | ✅ | 웹: U²-Net 마스크 + 순수 JS edge-pull inpainting · 로컬: rembg + opencv |
+| 6 | 워터마크 제거 | ✅ | ✅ | 웹: 브러쉬로 영역 칠한 뒤 자동 채움 (의존성 0) · 로컬: opencv-python |
+| 7 | 배경 제거 | ✅ | ✅ | 웹: 브라우저 AI 모델로 자동 분리 · 로컬: rembg |
+| 8 | 사람 제거 | ✅ | ✅ | 웹: 사람 마스크 자동 추출 + 배경 자동 채움 · 로컬: rembg + opencv |
 
 > v1.1부터 무거운 AI 처리(6~8)도 브라우저에서 실행됩니다 (ONNX/WebAssembly).
 > 첫 실행 시 모델/라이브러리가 jsDelivr CDN에서 다운로드되어 브라우저에 캐시됩니다.
@@ -128,6 +128,7 @@ Python + Flask로 이미지 편집 웹 도구를 만들어줘.
 | **v1.2** | **2026-04-22** | **UX 옵션 확장** — 워터마크/텍스트 **드래그로 위치 이동** · **글씨체 8종**(Pretendard / Noto Serif KR / 손글씨 / Georgia / Impact 등) · **굵기 4단계 + Italic** · 이미지 분할 **프리셋 버튼 7종**(1×2~4×4) · 이미지 합치기 **썸네일 + 누적 추가/개별 제거** |
 | **v1.3** | **2026-04-22** | **미리보기 흐름 통일 + 버그 픽스** — 모든 "실행" 버튼 → **"👁 미리보기"** 로 변경 (확인 후 다운로드 2단계) · **텍스트 복제 현상 해결** (`showResult`에서 드래그 좌표 리셋) · **워터마크 제거 무한 버퍼링 해결** (`new cv.Mat.zeros` → `cv.Mat.zeros` 정정 + try/catch + OpenCV 로드 실패 메시지) |
 | **v1.4** | **2026-04-22** | **분할/합치기/드래그 UX 추가 보강** — ① 워터마크 위치 기본값 **🖱 드래그 위치 (selected)** 로 변경 · ② **분할도 미리보기 후 다운로드** (그리드 가이드 라인 + ZIP은 다운로드 버튼 클릭 시 저장, `setPendingBlob` 추가) · ③ **메인 파일 선택 다중 지원** (2장 이상 선택 시 자동 '이미지 합치기' 모드로 전환 + 썸네일 적재) · ④ 워터마크 제거 OpenCV 로드 실패 시 **promise 캐시 초기화** (재시도 가능) |
+| **v1.6.4** | **2026-04-22** | **AI 라이브러리/모델명 UI 노출 정리** — 사용자 화면에서 OpenCV·U²-Net·transformers.js·RMBG 등 내부 라이브러리/모델 명칭 제거. 모든 안내 문구를 "AI 자동 분리", "AI 준비 중" 같은 일반 표현으로 통일. 법적 표기 의무는 README 라이선스 섹션에 유지. (라이선스/보안 검토 결과: transformers.js Apache-2.0 / 브라우저 100% 클라이언트 추론으로 사용자 이미지 미송신 / 모델 가중치는 HF CDN 직접 참조 = 재배포 없음 → 안전 확인) |
 | **v1.6.3** | **2026-04-22** | **타일 워터마크 정밀 컨트롤 + 배경 제거 모델 업그레이드** — ① 타일 옵션에 **간격(50~400%) + 회전(-90°~90°) 슬라이더** 추가, 회전 후 대각선 전체 커버하도록 알고리즘 개선 (잘림 없음) · ② 배경 제거 모델을 Xenova/modnet → **briaai/RMBG-1.4** (SOTA, 얼굴/머리카락 경계 보존 우수)로 업그레이드 |
 | **v1.6.2** | **2026-04-22** | **AI 모델 백엔드 교체 (@imgly → transformers.js)** — 원인: @imgly/background-removal-data 패키지가 jsdelivr 150MB 한도 초과로 모델 파일이 사실상 다운로드 불가능 → CDN 404로 무한 hang. 해결: **transformers.js + Xenova/modnet** (Hugging Face CDN, 검증된 인물 분할 ONNX 모델 ~25MB)로 교체. 진행률 콜백 + 캐시 사용. 배경/사람 제거 모두 정상 동작 |
 | **v1.6.1** | **2026-04-22** | **배경/사람 제거 OpenCV 의존 제거 + try/catch 추가 + 타일 옵션 상위 노출** — ① 사람 제거를 OpenCV inpaint → **순수 JS edge-pull inpainting + 3px dilate** 로 교체 (9MB CDN 로드 실패로 인한 무한 버퍼링 근절) · ② 배경 제거 / 사람 제거 모두 **try/catch 래핑 + 사용자 알림** (모델 로드 실패 시 hideLoader + notify) · ③ 워터마크 위치 select에서 **🔁 타일 반복** 옵션을 상단으로 이동 (잘 보이도록) |
@@ -158,6 +159,6 @@ MIT License — © 2026 COMMME. All rights reserved.
 | [onnxruntime](https://onnxruntime.ai/) | MIT | AI 모델 실행 |
 | [opencv-python-headless](https://opencv.org/) | Apache-2.0 | 워터마크/사람 제거 inpainting |
 | [transformers.js](https://github.com/huggingface/transformers.js) | Apache-2.0 | 브라우저 ONNX 추론 |
-| [briaai/RMBG-1.4](https://huggingface.co/briaai/RMBG-1.4) | CreativeML Open RAIL-M (비상업 가중치) | 배경 제거 AI 모델 |
+| [briaai/RMBG-1.4](https://huggingface.co/briaai/RMBG-1.4) | Bria RAIL-M (비상업 가중치) | 배경 제거 AI 모델 |
 
 > 이 프로젝트는 Claude Code (Anthropic)의 도움으로 제작되었습니다.
