@@ -177,7 +177,7 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
       <div class="form-row"><label class="form-label">크기(%)</label><input type="range" id="wm_size" min="2" max="20" step="1" value="6"><span id="wm_size_v" style="font-size:.75rem;color:#b3b3b3;width:40px;text-align:right">6%</span></div>
       <div class="form-row"><label class="form-label">위치</label><select class="form-input" id="wm_pos"><option value="drag">🖱 드래그 위치</option><option value="center">중앙</option><option value="br" selected>우하단</option><option value="bl">좌하단</option><option value="tr">우상단</option><option value="tl">좌상단</option><option value="tile">타일 반복</option></select></div>
       <div class="form-row"><label class="form-label">색상</label><input type="color" id="wm_color" value="#ffffff"></div>
-      <button class="btn btn-go" data-run="watermark">실행</button>
+      <button class="btn btn-go" data-run="watermark">👁 미리보기 생성</button>
     </div>
 
     <div id="opt-split" class="opt-panel">
@@ -193,7 +193,7 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
       </div>
       <div class="form-row"><label class="form-label">행</label><input type="number" class="form-input" id="sp_rows" value="2" min="1" max="10"></div>
       <div class="form-row"><label class="form-label">열</label><input type="number" class="form-input" id="sp_cols" value="2" min="1" max="10"></div>
-      <button class="btn btn-go" data-run="split">분할 후 ZIP 다운로드</button>
+      <button class="btn btn-go" data-run="split">👁 분할 미리보기 + ZIP</button>
     </div>
 
     <div id="opt-merge" class="opt-panel">
@@ -204,7 +204,7 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
       <div id="mg_thumbs" class="mg-thumbs"></div>
       <div class="form-row"><label class="form-label">방향</label><select class="form-input" id="mg_dir"><option value="h">가로</option><option value="v">세로</option><option value="g">그리드</option></select></div>
       <div class="form-row"><label class="form-label">간격(px)</label><input type="number" class="form-input" id="mg_gap" value="0" min="0" max="200"></div>
-      <button class="btn btn-go" data-run="merge">합치기</button>
+      <button class="btn btn-go" data-run="merge">👁 합치기 미리보기</button>
     </div>
 
     <div id="opt-text" class="opt-panel">
@@ -219,34 +219,34 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
       <div class="form-row"><label class="form-label">크기(%)</label><input type="range" id="tx_size" min="2" max="30" value="8"><span id="tx_size_v" style="font-size:.75rem;color:#b3b3b3;width:40px;text-align:right">8%</span></div>
       <div class="form-row"><label class="form-label">색</label><input type="color" id="tx_color" value="#ffffff"></div>
       <label class="chk-row"><input type="checkbox" id="tx_box"> 배경 박스</label>
-      <button class="btn btn-go" data-run="text">실행</button>
+      <button class="btn btn-go" data-run="text">👁 미리보기 생성</button>
     </div>
 
     <div id="opt-upscale" class="opt-panel">
       <div class="opt-title">⇱ 업스케일링</div>
       <div class="form-row"><label class="form-label">배율</label><select class="form-input" id="up_scale"><option value="2">2x</option><option value="3">3x</option><option value="4">4x</option></select></div>
       <label class="chk-row"><input type="checkbox" id="up_sharpen" checked> 샤픈 필터 적용</label>
-      <button class="btn btn-go" data-run="upscale">실행</button>
+      <button class="btn btn-go" data-run="upscale">👁 미리보기 생성</button>
     </div>
 
     <div id="opt-watermark_remove" class="opt-panel">
       <div class="opt-title">🩹 워터마크 제거</div>
       <div class="notice">미리보기에서 워터마크 영역을 <strong>마우스로 드래그하여 사각형 선택</strong> 후 실행하세요. OpenCV Telea inpainting으로 자동 복원합니다.</div>
       <div class="form-row"><label class="form-label">반경(px)</label><input type="range" id="wmr_radius" min="3" max="20" value="5"><span id="wmr_radius_v" style="font-size:.75rem;color:#b3b3b3;width:40px;text-align:right">5</span></div>
-      <button class="btn btn-go" data-run="watermark_remove">제거 실행</button>
+      <button class="btn btn-go" data-run="watermark_remove">👁 제거 미리보기</button>
     </div>
 
     <div id="opt-bg_remove" class="opt-panel">
       <div class="opt-title">✂️ 배경 제거 (AI)</div>
       <div class="notice"><strong>U²-Net</strong> 모델이 브라우저에서 직접 실행됩니다. 첫 실행 시 모델(~40MB) 다운로드 → 이후 캐시. 결과는 투명 PNG.</div>
-      <button class="btn btn-go" data-run="bg_remove">배경 제거 실행</button>
+      <button class="btn btn-go" data-run="bg_remove">👁 배경 제거 미리보기</button>
     </div>
 
     <div id="opt-person_remove" class="opt-panel">
       <div class="opt-title">👤 사람 제거 (AI + CV)</div>
       <div class="notice">U²-Net으로 사람 마스크 추출 → OpenCV inpaint로 그 영역을 주변 배경으로 복원합니다.</div>
       <div class="form-row"><label class="form-label">반경(px)</label><input type="range" id="pr_radius" min="3" max="30" value="10"><span id="pr_radius_v" style="font-size:.75rem;color:#b3b3b3;width:40px;text-align:right">10</span></div>
-      <button class="btn btn-go" data-run="person_remove">사람 제거 실행</button>
+      <button class="btn btn-go" data-run="person_remove">👁 사람 제거 미리보기</button>
     </div>
 
   </aside>
@@ -631,6 +631,9 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
     previewCanvas.getContext('2d').drawImage(canvas, 0, 0);
     overlay.width = canvas.width;
     overlay.height = canvas.height;
+    // Reset drag positions so subsequent overlay events don't re-render ghost text on the result.
+    wmDragXY = null;
+    txDragXY = null;
     clearOverlay();
     previewCanvas._full = canvas; // reference kept for potential reuse
   }
@@ -863,43 +866,63 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
       return;
     }
     showLoader('OpenCV.js 로딩 중...', '첫 실행 시 ~9MB 다운로드. 다음 실행은 캐시 사용.');
-    const cv = await loadOpenCV();
+    let cv;
+    try {
+      cv = await loadOpenCV();
+    } catch (e) {
+      hideLoader();
+      notify('OpenCV.js 로드 실패: ' + (e.message || e) + ' (네트워크 확인 후 새로고침)', true);
+      return;
+    }
     showLoader('inpainting 실행 중...', '잠시만 기다려주세요.');
     await new Promise(r => setTimeout(r, 30));
 
     const W = currentImage.width, H = currentImage.height;
-    const src = makeCanvas(W, H);
-    src.getContext('2d').drawImage(currentImage, 0, 0);
+    let srcMat, maskMat, rgbMat, dstMat, outMat;
+    try {
+      const src = makeCanvas(W, H);
+      src.getContext('2d').drawImage(currentImage, 0, 0);
 
-    const srcMat = cv.imread(src);
-    const maskMat = new cv.Mat.zeros(H, W, cv.CV_8UC1);
-    const x = Math.max(0, Math.round(selRect.x));
-    const y = Math.max(0, Math.round(selRect.y));
-    const w = Math.min(W - x, Math.round(selRect.w));
-    const h = Math.min(H - y, Math.round(selRect.h));
-    const rect = new cv.Rect(x, y, w, h);
-    const roi = maskMat.roi(rect);
-    roi.setTo(new cv.Scalar(255));
-    roi.delete();
+      srcMat = cv.imread(src);
+      // FIX: cv.Mat.zeros is a static factory — must NOT be called with `new`
+      maskMat = cv.Mat.zeros(H, W, cv.CV_8UC1);
+      const x = Math.max(0, Math.round(selRect.x));
+      const y = Math.max(0, Math.round(selRect.y));
+      const w = Math.min(W - x, Math.round(selRect.w));
+      const h = Math.min(H - y, Math.round(selRect.h));
+      const rect = new cv.Rect(x, y, w, h);
+      const roi = maskMat.roi(rect);
+      roi.setTo(new cv.Scalar(255));
+      roi.delete();
 
-    // Convert RGBA → RGB for inpaint
-    const rgbMat = new cv.Mat();
-    cv.cvtColor(srcMat, rgbMat, cv.COLOR_RGBA2RGB);
-    const dstMat = new cv.Mat();
-    const radius = parseInt($('wmr_radius').value) || 5;
-    cv.inpaint(rgbMat, maskMat, dstMat, radius, cv.INPAINT_TELEA);
-    const outMat = new cv.Mat();
-    cv.cvtColor(dstMat, outMat, cv.COLOR_RGB2RGBA);
+      // Convert RGBA → RGB for inpaint
+      rgbMat = new cv.Mat();
+      cv.cvtColor(srcMat, rgbMat, cv.COLOR_RGBA2RGB);
+      dstMat = new cv.Mat();
+      const radius = parseInt($('wmr_radius').value) || 5;
+      cv.inpaint(rgbMat, maskMat, dstMat, radius, cv.INPAINT_TELEA);
+      outMat = new cv.Mat();
+      cv.cvtColor(dstMat, outMat, cv.COLOR_RGB2RGBA);
 
-    const out = makeCanvas(W, H);
-    cv.imshow(out, outMat);
-    srcMat.delete(); maskMat.delete(); rgbMat.delete(); dstMat.delete(); outMat.delete();
+      const out = makeCanvas(W, H);
+      cv.imshow(out, outMat);
 
-    selRect = null;
-    showResult(out);
-    setPendingResult(out, `${baseName()}_watermark_removed.png`);
-    hideLoader();
-    notify('워터마크 제거 완료 — 확인 후 다운로드');
+      selRect = null;
+      showResult(out);
+      setPendingResult(out, `${baseName()}_watermark_removed.png`);
+      hideLoader();
+      notify('워터마크 제거 완료 — 확인 후 다운로드');
+    } catch (e) {
+      console.error('[watermark_remove]', e);
+      hideLoader();
+      notify('워터마크 제거 실패: ' + (e.message || e), true);
+    } finally {
+      try { srcMat && srcMat.delete(); } catch(_){}
+      try { maskMat && maskMat.delete(); } catch(_){}
+      try { rgbMat && rgbMat.delete(); } catch(_){}
+      try { dstMat && dstMat.delete(); } catch(_){}
+      try { outMat && outMat.delete(); } catch(_){}
+    }
   }
 
   // ---- Background removal (browser ONNX U²-Net) ----
