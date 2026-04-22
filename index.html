@@ -9,7 +9,7 @@
 <meta property="og:description" content="배경 제거, 사람 제거까지 브라우저에서. 업로드 없음.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🖼️</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700;900&family=Noto+Serif+KR:wght@400;700;900&family=Nanum+Pen+Script&family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Noto Sans KR','Inter',sans-serif;background:#121212;color:#e0e0e0;min-height:100vh}
@@ -77,6 +77,17 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
 .footer a{color:#b3b3b3;text-decoration:none}
 .footer a:hover{color:#1ed760}
 .hidden{display:none!important}
+.btn-preset{padding:6px 10px;border:1px solid #333;border-radius:6px;background:#242424;color:#e0e0e0;font-size:.75rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .12s}
+.btn-preset:hover{border-color:#1ed760;color:#1ed760}
+.btn-preset.active{background:#1ed760;color:#121212;border-color:#1ed760}
+.btn-sub{background:#242424;color:#b3b3b3;border:1px dashed #444;border-radius:8px;padding:8px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit}
+.btn-sub:hover{border-color:#1ed760;color:#1ed760}
+.mg-thumbs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;max-height:120px;overflow-y:auto}
+.mg-thumb{position:relative;width:48px;height:48px;border-radius:6px;overflow:hidden;border:1px solid #333}
+.mg-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.mg-thumb .mg-x{position:absolute;top:-2px;right:-2px;width:16px;height:16px;border-radius:50%;background:#e74c3c;color:#fff;font-size:.65rem;font-weight:900;display:flex;align-items:center;justify-content:center;cursor:pointer;border:none;line-height:1}
+.mg-thumb-count{font-size:.7rem;color:#b3b3b3;align-self:center}
+#overlayCanvas.move-mode{cursor:move}
 .privacy-line{color:rgba(255,255,255,.65);font-size:.72rem;margin-top:6px}
 .loader{position:absolute;inset:0;background:rgba(18,18,18,.92);display:none;align-items:center;justify-content:center;flex-direction:column;border-radius:12px;z-index:10;padding:20px;text-align:center}
 .loader.show{display:flex}
@@ -84,6 +95,13 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
 @keyframes spin{to{transform:rotate(360deg)}}
 .loader-text{font-size:.85rem;color:#fff;font-weight:700;margin-bottom:4px}
 .loader-sub{font-size:.72rem;color:#b3b3b3;max-width:340px;line-height:1.5}
+.result-bar{margin-top:14px;padding:12px 14px;background:#0a2a1e;border:1px solid #1ed760;border-radius:10px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;animation:pop .3s ease}
+.result-label{font-size:.8rem;color:#7fdfa8;font-weight:700;flex:1;min-width:200px}
+.result-actions{display:flex;gap:8px}
+.btn-download{background:#1ed760;color:#121212;padding:8px 16px;font-size:.8rem}
+.btn-download:hover{background:#1fdf64}
+.btn-revert{background:transparent;color:#b3b3b3;border:1px solid #535353;padding:8px 14px;font-size:.8rem}
+.btn-revert:hover{border-color:#fff;color:#fff}
 </style>
 </head>
 <body>
@@ -118,6 +136,13 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
         <span class="img-size" id="imgSize"></span>
         <button class="img-change" id="changeBtn">변경</button>
       </div>
+      <div id="resultBar" class="result-bar hidden">
+        <span class="result-label">✨ 결과 준비됨 · 미리보기를 확인한 뒤 다운로드하세요</span>
+        <div class="result-actions">
+          <button class="btn btn-download" id="downloadBtn">💾 다운로드</button>
+          <button class="btn btn-revert" id="revertBtn">원본으로</button>
+        </div>
+      </div>
     </div>
     <div id="loader" class="loader">
       <div class="spinner"></div>
@@ -143,16 +168,29 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
     <!-- Option panels -->
     <div id="opt-watermark" class="opt-panel show">
       <div class="opt-title">💧 워터마크 추가</div>
+      <div class="notice">💡 <strong>미리보기에서 드래그</strong>하면 원하는 위치로 이동됩니다.</div>
       <div class="form-row"><label class="form-label">텍스트</label><input class="form-input" id="wm_text" value="© COMMME"></div>
+      <div class="form-row"><label class="form-label">글씨체</label><select class="form-input" id="wm_font"><option value="Noto Sans KR">Noto Sans KR</option><option value="Pretendard">Pretendard</option><option value="Noto Serif KR">Noto Serif KR (명조)</option><option value="Nanum Pen Script">손글씨</option><option value="Arial">Arial</option><option value="Georgia">Georgia (Serif)</option><option value="Courier New">Courier (고정폭)</option><option value="Impact">Impact</option></select></div>
+      <div class="form-row"><label class="form-label">굵기</label><select class="form-input" id="wm_weight"><option value="300">얇게</option><option value="400">보통</option><option value="700" selected>굵게</option><option value="900">아주 굵게</option></select></div>
+      <label class="chk-row"><input type="checkbox" id="wm_italic"> 기울임 (Italic)</label>
       <div class="form-row"><label class="form-label">투명도</label><input type="range" id="wm_opacity" min="0.1" max="1" step="0.05" value="0.5"><span id="wm_opacity_v" style="font-size:.75rem;color:#b3b3b3;width:40px;text-align:right">50%</span></div>
       <div class="form-row"><label class="form-label">크기(%)</label><input type="range" id="wm_size" min="2" max="20" step="1" value="6"><span id="wm_size_v" style="font-size:.75rem;color:#b3b3b3;width:40px;text-align:right">6%</span></div>
-      <div class="form-row"><label class="form-label">위치</label><select class="form-input" id="wm_pos"><option value="center">중앙</option><option value="br">우하단</option><option value="bl">좌하단</option><option value="tr">우상단</option><option value="tl">좌상단</option><option value="tile">타일 반복</option></select></div>
+      <div class="form-row"><label class="form-label">위치</label><select class="form-input" id="wm_pos"><option value="drag">🖱 드래그 위치</option><option value="center">중앙</option><option value="br" selected>우하단</option><option value="bl">좌하단</option><option value="tr">우상단</option><option value="tl">좌상단</option><option value="tile">타일 반복</option></select></div>
       <div class="form-row"><label class="form-label">색상</label><input type="color" id="wm_color" value="#ffffff"></div>
       <button class="btn btn-go" data-run="watermark">실행</button>
     </div>
 
     <div id="opt-split" class="opt-panel">
       <div class="opt-title">⊞ 이미지 분할</div>
+      <div class="form-row" style="flex-wrap:wrap;gap:6px"><label class="form-label" style="width:100%">빠른 선택</label>
+        <button class="btn-preset" data-split="1,2">1×2</button>
+        <button class="btn-preset" data-split="2,1">2×1</button>
+        <button class="btn-preset" data-split="2,2">2×2</button>
+        <button class="btn-preset" data-split="2,3">2×3</button>
+        <button class="btn-preset" data-split="3,3">3×3</button>
+        <button class="btn-preset" data-split="3,4">3×4</button>
+        <button class="btn-preset" data-split="4,4">4×4</button>
+      </div>
       <div class="form-row"><label class="form-label">행</label><input type="number" class="form-input" id="sp_rows" value="2" min="1" max="10"></div>
       <div class="form-row"><label class="form-label">열</label><input type="number" class="form-input" id="sp_cols" value="2" min="1" max="10"></div>
       <button class="btn btn-go" data-run="split">분할 후 ZIP 다운로드</button>
@@ -160,7 +198,10 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
 
     <div id="opt-merge" class="opt-panel">
       <div class="opt-title">⊟ 이미지 합치기</div>
+      <div class="notice">📁 <strong>여러 장 한꺼번에 선택</strong> (Ctrl/Shift 클릭) 또는 추가 선택 버튼으로 계속 추가.</div>
       <div class="form-row"><label class="form-label">파일</label><input type="file" class="form-input" id="mg_files" accept="image/*" multiple></div>
+      <button class="btn btn-sub" id="mg_add_btn" type="button" style="width:100%;margin-bottom:8px">+ 파일 추가</button>
+      <div id="mg_thumbs" class="mg-thumbs"></div>
       <div class="form-row"><label class="form-label">방향</label><select class="form-input" id="mg_dir"><option value="h">가로</option><option value="v">세로</option><option value="g">그리드</option></select></div>
       <div class="form-row"><label class="form-label">간격(px)</label><input type="number" class="form-input" id="mg_gap" value="0" min="0" max="200"></div>
       <button class="btn btn-go" data-run="merge">합치기</button>
@@ -168,7 +209,11 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
 
     <div id="opt-text" class="opt-panel">
       <div class="opt-title">T 텍스트 추가</div>
+      <div class="notice">💡 <strong>미리보기에서 드래그</strong>하면 원하는 위치로 이동됩니다.</div>
       <div class="form-row"><label class="form-label">텍스트</label><input class="form-input" id="tx_text" value="HELLO"></div>
+      <div class="form-row"><label class="form-label">글씨체</label><select class="form-input" id="tx_font"><option value="Noto Sans KR">Noto Sans KR</option><option value="Pretendard">Pretendard</option><option value="Noto Serif KR">Noto Serif KR (명조)</option><option value="Nanum Pen Script">손글씨</option><option value="Arial">Arial</option><option value="Georgia">Georgia (Serif)</option><option value="Courier New">Courier (고정폭)</option><option value="Impact">Impact</option></select></div>
+      <div class="form-row"><label class="form-label">굵기</label><select class="form-input" id="tx_weight"><option value="300">얇게</option><option value="400">보통</option><option value="700" selected>굵게</option><option value="900">아주 굵게</option></select></div>
+      <label class="chk-row"><input type="checkbox" id="tx_italic"> 기울임 (Italic)</label>
       <div class="form-row"><label class="form-label">X(%)</label><input type="range" id="tx_x" min="0" max="100" value="50"><span id="tx_x_v" style="font-size:.75rem;color:#b3b3b3;width:40px;text-align:right">50</span></div>
       <div class="form-row"><label class="form-label">Y(%)</label><input type="range" id="tx_y" min="0" max="100" value="50"><span id="tx_y_v" style="font-size:.75rem;color:#b3b3b3;width:40px;text-align:right">50</span></div>
       <div class="form-row"><label class="form-label">크기(%)</label><input type="range" id="tx_size" min="2" max="30" value="8"><span id="tx_size_v" style="font-size:.75rem;color:#b3b3b3;width:40px;text-align:right">8%</span></div>
@@ -242,6 +287,13 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
   let selRect = null; // {x,y,w,h} in original image coords
   let dragStart = null;
 
+  // Drag position for watermark/text (in image pixel coords; null = use preset/sliders)
+  let wmDragXY = null; // {x,y}
+  let txDragXY = null; // {x,y}
+
+  // Merge file accumulator (since <input type="file"> replaces files each click)
+  let mergeFiles = []; // File[]
+
   // ---- DOM ----
   const $ = (id) => document.getElementById(id);
   const previewBox = $('preview');
@@ -258,6 +310,18 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
 
   function showLoader(text, sub){ loaderText.textContent = text || '처리 중...'; loaderSub.textContent = sub || ''; loader.classList.add('show'); }
   function hideLoader(){ loader.classList.remove('show'); }
+
+  // Pending result (preview shown, awaiting user confirmation to download)
+  let pendingResult = null; // { canvas, filename }
+  const resultBar = () => $('resultBar');
+  function setPendingResult(canvas, filename){
+    pendingResult = { canvas, filename };
+    resultBar().classList.remove('hidden');
+  }
+  function clearPendingResult(){
+    pendingResult = null;
+    resultBar().classList.add('hidden');
+  }
 
   function notify(msg, isErr){
     toast.textContent = msg;
@@ -277,6 +341,9 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
       img.onload = () => {
         currentImage = img;
         selRect = null;
+        wmDragXY = null;
+        txDragXY = null;
+        clearPendingResult();
         drawPreview(img);
         dropzone.classList.add('hidden');
         previewBox.classList.add('show');
@@ -318,6 +385,15 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
   dropzone.addEventListener('click', () => fileInput.click());
   fileInput.addEventListener('change', e => { if (e.target.files[0]) loadFile(e.target.files[0]); });
   $('changeBtn').addEventListener('click', () => { fileInput.value=''; fileInput.click(); });
+  $('downloadBtn').addEventListener('click', () => {
+    if (!pendingResult) return;
+    downloadCanvas(pendingResult.canvas, pendingResult.filename);
+    notify('다운로드 시작');
+  });
+  $('revertBtn').addEventListener('click', () => {
+    if (currentImage) drawPreview(currentImage);
+    clearPendingResult();
+  });
 
   // Overlay rectangle selection — derive scale from live DOM size to stay accurate
   // under CSS max-width:100% / max-height:380px constraints.
@@ -328,23 +404,96 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
     return { x: (e.clientX - r.left) * sx, y: (e.clientY - r.top) * sy };
   }
   overlay.addEventListener('mousedown', e => {
-    if (currentFeature !== 'watermark_remove') return;
-    dragStart = overlayPoint(e);
-    selRect = { x: dragStart.x, y: dragStart.y, w: 0, h: 0 };
+    const p = overlayPoint(e);
+    if (currentFeature === 'watermark_remove') {
+      dragStart = p;
+      selRect = { x: p.x, y: p.y, w: 0, h: 0 };
+    } else if (currentFeature === 'watermark') {
+      wmDragXY = { x: p.x, y: p.y };
+      // Auto-switch wm_pos to drag when user drags
+      const sel = $('wm_pos'); if (sel) sel.value = 'drag';
+      drawWmPreview();
+      dragStart = p; // enable move tracking
+    } else if (currentFeature === 'text') {
+      txDragXY = { x: p.x, y: p.y };
+      const xRange = $('tx_x'), yRange = $('tx_y');
+      if (xRange) { xRange.value = Math.round(p.x / overlay.width * 100); xRange.dispatchEvent(new Event('input')); }
+      if (yRange) { yRange.value = Math.round(p.y / overlay.height * 100); yRange.dispatchEvent(new Event('input')); }
+      drawTxPreview();
+      dragStart = p;
+    }
   });
   overlay.addEventListener('mousemove', e => {
-    if (!dragStart || currentFeature !== 'watermark_remove') return;
+    if (!dragStart) return;
     const p = overlayPoint(e);
-    selRect = {
-      x: Math.min(dragStart.x, p.x),
-      y: Math.min(dragStart.y, p.y),
-      w: Math.abs(p.x - dragStart.x),
-      h: Math.abs(p.y - dragStart.y)
-    };
-    drawSelOverlay();
+    if (currentFeature === 'watermark_remove') {
+      selRect = {
+        x: Math.min(dragStart.x, p.x),
+        y: Math.min(dragStart.y, p.y),
+        w: Math.abs(p.x - dragStart.x),
+        h: Math.abs(p.y - dragStart.y)
+      };
+      drawSelOverlay();
+    } else if (currentFeature === 'watermark') {
+      wmDragXY = { x: p.x, y: p.y };
+      drawWmPreview();
+    } else if (currentFeature === 'text') {
+      txDragXY = { x: p.x, y: p.y };
+      const xRange = $('tx_x'), yRange = $('tx_y');
+      if (xRange) { xRange.value = Math.round(p.x / overlay.width * 100); xRange.dispatchEvent(new Event('input')); }
+      if (yRange) { yRange.value = Math.round(p.y / overlay.height * 100); yRange.dispatchEvent(new Event('input')); }
+      drawTxPreview();
+    }
   });
   overlay.addEventListener('mouseup', () => { dragStart = null; });
   overlay.addEventListener('mouseleave', () => { dragStart = null; });
+
+  // Live overlay preview for watermark (ghost text at current position)
+  function drawWmPreview(){
+    const ctx = overlay.getContext('2d');
+    ctx.clearRect(0, 0, overlay.width, overlay.height);
+    if (!wmDragXY || !currentImage) return;
+    const text = ($('wm_text')?.value) || '';
+    if (!text) return;
+    const sizePct = parseFloat($('wm_size')?.value || '6');
+    const fontPx = Math.max(16, Math.round(overlay.width * sizePct / 100));
+    const font = $('wm_font')?.value || 'Noto Sans KR';
+    const weight = $('wm_weight')?.value || '700';
+    const italic = $('wm_italic')?.checked ? 'italic ' : '';
+    const color = $('wm_color')?.value || '#ffffff';
+    ctx.font = `${italic}${weight} ${fontPx}px "${font}", sans-serif`;
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = color;
+    ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
+    ctx.fillText(text, wmDragXY.x, wmDragXY.y);
+    // guide dot
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#1ed760';
+    ctx.beginPath(); ctx.arc(wmDragXY.x, wmDragXY.y, Math.max(3, fontPx*0.06), 0, Math.PI*2); ctx.fill();
+  }
+
+  // Live overlay preview for text
+  function drawTxPreview(){
+    const ctx = overlay.getContext('2d');
+    ctx.clearRect(0, 0, overlay.width, overlay.height);
+    if (!txDragXY || !currentImage) return;
+    const text = ($('tx_text')?.value) || '';
+    if (!text) return;
+    const sizePct = parseFloat($('tx_size')?.value || '8');
+    const fontPx = Math.max(16, Math.round(overlay.width * sizePct / 100));
+    const font = $('tx_font')?.value || 'Noto Sans KR';
+    const weight = $('tx_weight')?.value || '700';
+    const italic = $('tx_italic')?.checked ? 'italic ' : '';
+    const color = $('tx_color')?.value || '#ffffff';
+    ctx.font = `${italic}${weight} ${fontPx}px "${font}", sans-serif`;
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = color;
+    ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
+    ctx.fillText(text, txDragXY.x, txDragXY.y);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#1ed760';
+    ctx.beginPath(); ctx.arc(txDragXY.x, txDragXY.y, Math.max(3, fontPx*0.06), 0, Math.PI*2); ctx.fill();
+  }
 
   // ---- Feature switcher ----
   const featList = $('featList');
@@ -357,12 +506,22 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
     document.querySelectorAll('.opt-panel').forEach(p => p.classList.remove('show'));
     const panel = $('opt-' + id);
     if (panel) panel.classList.add('show');
-    // Overlay enable only for watermark_remove
+    // Overlay enable for watermark_remove (rect select) + watermark / text (drag to position)
     if (id === 'watermark_remove') {
       overlay.classList.add('active');
+      overlay.classList.remove('move-mode');
       drawSelOverlay();
+    } else if (id === 'watermark') {
+      overlay.classList.add('active');
+      overlay.classList.add('move-mode');
+      drawWmPreview();
+    } else if (id === 'text') {
+      overlay.classList.add('active');
+      overlay.classList.add('move-mode');
+      drawTxPreview();
     } else {
       overlay.classList.remove('active');
+      overlay.classList.remove('move-mode');
       clearOverlay();
     }
   });
@@ -381,6 +540,65 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
   bindRange('tx_size','tx_size_v', x => x+'%');
   bindRange('wmr_radius','wmr_radius_v');
   bindRange('pr_radius','pr_radius_v');
+
+  // Live preview refresh for watermark/text when form values change
+  function refreshLivePreview(){
+    if (currentFeature === 'watermark') drawWmPreview();
+    else if (currentFeature === 'text') drawTxPreview();
+  }
+  ['wm_text','wm_font','wm_weight','wm_italic','wm_size','wm_color','wm_opacity','wm_pos'].forEach(id => {
+    const el = $(id); if (el) el.addEventListener('input', refreshLivePreview);
+  });
+  ['tx_text','tx_font','tx_weight','tx_italic','tx_size','tx_color','tx_x','tx_y'].forEach(id => {
+    const el = $(id); if (el) el.addEventListener('input', () => {
+      // If user moves sliders, treat as drag override using percentage
+      if (id === 'tx_x' || id === 'tx_y') {
+        const xPct = parseFloat($('tx_x').value), yPct = parseFloat($('tx_y').value);
+        if (overlay.width && overlay.height) txDragXY = { x: overlay.width * xPct / 100, y: overlay.height * yPct / 100 };
+      }
+      refreshLivePreview();
+    });
+  });
+
+  // Split preset buttons (2×2, 3×3, ...)
+  document.body.addEventListener('click', e => {
+    const btn = e.target.closest('.btn-preset[data-split]'); if (!btn) return;
+    e.preventDefault();
+    const [r, c] = btn.dataset.split.split(',').map(n => parseInt(n, 10));
+    $('sp_rows').value = r; $('sp_cols').value = c;
+    document.querySelectorAll('.btn-preset[data-split]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+
+  // Merge file accumulation + thumbnails
+  function renderMergeThumbs(){
+    const box = $('mg_thumbs'); if (!box) return;
+    box.innerHTML = '';
+    mergeFiles.forEach((f, idx) => {
+      const wrap = document.createElement('div'); wrap.className = 'mg-thumb';
+      const img = document.createElement('img');
+      img.alt = f.name; img.src = URL.createObjectURL(f);
+      img.onload = () => URL.revokeObjectURL(img.src);
+      const x = document.createElement('button'); x.className = 'mg-x'; x.type = 'button'; x.textContent = '×';
+      x.title = '제거';
+      x.addEventListener('click', () => { mergeFiles.splice(idx, 1); renderMergeThumbs(); });
+      wrap.appendChild(img); wrap.appendChild(x);
+      box.appendChild(wrap);
+    });
+    if (mergeFiles.length) {
+      const count = document.createElement('span'); count.className = 'mg-thumb-count';
+      count.textContent = `${mergeFiles.length}장`;
+      box.appendChild(count);
+    }
+  }
+  $('mg_files').addEventListener('change', e => {
+    const newFiles = Array.from(e.target.files || []);
+    mergeFiles = mergeFiles.concat(newFiles);
+    renderMergeThumbs();
+    // Allow re-selecting same file
+    e.target.value = '';
+  });
+  $('mg_add_btn').addEventListener('click', () => $('mg_files').click());
 
   // ---- Run buttons ----
   document.body.addEventListener('click', async e => {
@@ -458,17 +676,24 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
     const sizePct = parseFloat($('wm_size').value);
     const pos = $('wm_pos').value;
     const color = $('wm_color').value;
+    const font = $('wm_font').value || 'Noto Sans KR';
+    const weight = $('wm_weight').value || '700';
+    const italic = $('wm_italic').checked ? 'italic ' : '';
     const canvas = makeCanvas(currentImage.width, currentImage.height);
     const ctx = canvas.getContext('2d');
     ctx.drawImage(currentImage, 0, 0);
     const fontPx = Math.max(16, Math.round(canvas.width * sizePct / 100));
-    ctx.font = `700 ${fontPx}px "Noto Sans KR", Arial, sans-serif`;
+    ctx.font = `${italic}${weight} ${fontPx}px "${font}", "Noto Sans KR", Arial, sans-serif`;
     ctx.fillStyle = color;
     ctx.globalAlpha = opacity;
     ctx.textBaseline = 'middle';
     const m = ctx.measureText(text);
     const pad = fontPx * 0.5;
-    if (pos === 'tile') {
+    if (pos === 'drag' && wmDragXY) {
+      ctx.textAlign = 'center';
+      ctx.fillText(text, wmDragXY.x, wmDragXY.y);
+      ctx.textAlign = 'start';
+    } else if (pos === 'tile') {
       ctx.save();
       ctx.globalAlpha = opacity * 0.8;
       const stepX = m.width + fontPx * 2;
@@ -490,8 +715,8 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
       ctx.fillText(text, x, y);
     }
     showResult(canvas);
-    downloadCanvas(canvas, `${baseName()}_watermark.png`);
-    notify('완료!');
+    setPendingResult(canvas, `${baseName()}_watermark.png`);
+    notify('미리보기 준비 — 확인 후 다운로드');
   }
 
   // ---- Split ----
@@ -524,11 +749,11 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
 
   // ---- Merge ----
   async function runMerge(){
-    const files = $('mg_files').files;
+    const files = mergeFiles.length >= 2 ? mergeFiles : Array.from($('mg_files').files || []);
     if (!files || files.length < 2) { notify('2장 이상 선택해주세요.', true); return; }
     const dir = $('mg_dir').value;
     const gap = Math.max(0, parseInt($('mg_gap').value) || 0);
-    const imgs = await Promise.all(Array.from(files).map(f => new Promise((res, rej) => {
+    const imgs = await Promise.all(files.map(f => new Promise((res, rej) => {
       const r = new FileReader();
       r.onload = e => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = e.target.result; };
       r.onerror = rej; r.readAsDataURL(f);
@@ -559,8 +784,8 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
       });
     }
     showResult(canvas);
-    downloadCanvas(canvas, `${baseName()}_merge.png`);
-    notify(`${imgs.length}장 합치기 완료`);
+    setPendingResult(canvas, `${baseName()}_merge.png`);
+    notify(`${imgs.length}장 합치기 완료 — 확인 후 다운로드`);
   }
 
   // ---- Text ----
@@ -571,15 +796,19 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
     const sizePct = parseFloat($('tx_size').value);
     const color = $('tx_color').value;
     const box = $('tx_box').checked;
+    const font = $('tx_font').value || 'Noto Sans KR';
+    const weight = $('tx_weight').value || '700';
+    const italic = $('tx_italic').checked ? 'italic ' : '';
     const canvas = makeCanvas(currentImage.width, currentImage.height);
     const ctx = canvas.getContext('2d');
     ctx.drawImage(currentImage, 0, 0);
     const fontPx = Math.max(16, Math.round(canvas.width * sizePct / 100));
-    ctx.font = `700 ${fontPx}px "Noto Sans KR", Arial, sans-serif`;
+    ctx.font = `${italic}${weight} ${fontPx}px "${font}", "Noto Sans KR", Arial, sans-serif`;
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'center';
-    const x = canvas.width * xPct / 100;
-    const y = canvas.height * yPct / 100;
+    // Drag override: if user dragged on overlay, prefer pixel coords
+    const x = txDragXY ? txDragXY.x : (canvas.width * xPct / 100);
+    const y = txDragXY ? txDragXY.y : (canvas.height * yPct / 100);
     if (box) {
       const m = ctx.measureText(text);
       const padX = fontPx * 0.5, padY = fontPx * 0.25;
@@ -589,8 +818,8 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
     ctx.fillStyle = color;
     ctx.fillText(text, x, y);
     showResult(canvas);
-    downloadCanvas(canvas, `${baseName()}_text.png`);
-    notify('완료!');
+    setPendingResult(canvas, `${baseName()}_text.png`);
+    notify('미리보기 준비 — 확인 후 다운로드');
   }
 
   // ---- Upscale ----
@@ -607,8 +836,8 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
     ctx.drawImage(currentImage, 0, 0, w, h);
     if (doSharpen) sharpen(ctx, w, h);
     showResult(canvas);
-    downloadCanvas(canvas, `${baseName()}_upscale_${scale}x.png`);
-    notify(`${scale}x 업스케일 완료`);
+    setPendingResult(canvas, `${baseName()}_upscale_${scale}x.png`);
+    notify(`${scale}x 업스케일 완료 — 확인 후 다운로드`);
   }
   function sharpen(ctx, w, h){
     const src = ctx.getImageData(0, 0, w, h);
@@ -668,9 +897,9 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
 
     selRect = null;
     showResult(out);
-    downloadCanvas(out, `${baseName()}_watermark_removed.png`);
+    setPendingResult(out, `${baseName()}_watermark_removed.png`);
     hideLoader();
-    notify('워터마크 제거 완료');
+    notify('워터마크 제거 완료 — 확인 후 다운로드');
   }
 
   // ---- Background removal (browser ONNX U²-Net) ----
@@ -691,9 +920,9 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
     out.getContext('2d').drawImage(im, 0, 0);
     URL.revokeObjectURL(url);
     showResult(out);
-    downloadCanvas(out, `${baseName()}_no_bg.png`);
+    setPendingResult(out, `${baseName()}_no_bg.png`);
     hideLoader();
-    notify('배경 제거 완료 (투명 PNG)');
+    notify('배경 제거 완료 (투명 PNG) — 확인 후 다운로드');
   }
 
   // ---- Person removal (U²-Net mask + OpenCV inpaint) ----
