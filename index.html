@@ -7,7 +7,7 @@
 <meta name="description" content="설치 없이 브라우저에서 워터마크·분할·합치기·텍스트·업스케일·배경제거·사람제거·워터마크제거. 파일 업로드 없이 본인 PC에서만 처리됩니다.">
 <meta property="og:title" content="Image Tools — 브라우저에서 8가지 이미지 편집">
 <meta property="og:description" content="배경 제거, 사람 제거까지 브라우저에서. 업로드 없음.">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🖼️</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%2310B981%22/><text x=%2250%22 y=%2274%22 font-size=%2272%22 text-anchor=%22middle%22 fill=%22white%22 font-family=%22Inter,Arial,sans-serif%22 font-weight=%22900%22 font-style=%22italic%22>i</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Noto+Serif+KR:wght@400;700;900&family=Nanum+Pen+Script&family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
@@ -41,8 +41,9 @@ h1{font-family:'Pretendard Variable','Inter','Pretendard',sans-serif;font-size:2
 .img-preview{display:none;text-align:center;position:relative}
 .img-preview.show{display:block}
 .canvas-wrap{display:inline-block;position:relative}
-.img-preview canvas{max-width:100%;max-height:380px;height:auto;border-radius:10px;box-shadow:var(--shadow-lg);display:block;background:#fff}
-#overlayCanvas{position:absolute;top:0;left:0;width:100%;height:100%;max-width:100%;max-height:380px;cursor:crosshair;pointer-events:none;border-radius:10px}
+.img-preview canvas{max-width:100%;max-height:380px;height:auto;border-radius:10px;display:block}
+#previewCanvas{box-shadow:var(--shadow-lg);background:#fff}
+#overlayCanvas{position:absolute;top:0;left:0;width:100%;height:100%;max-width:100%;max-height:380px;cursor:crosshair;pointer-events:none;border-radius:10px;background:transparent!important;box-shadow:none!important}
 #overlayCanvas.active{pointer-events:auto}
 .img-info{display:flex;align-items:center;justify-content:space-between;margin-top:14px;flex-wrap:wrap;gap:8px}
 .img-name{font-size:.85rem;color:var(--text);font-weight:700}
