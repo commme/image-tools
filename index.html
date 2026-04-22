@@ -175,7 +175,7 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
       <label class="chk-row"><input type="checkbox" id="wm_italic"> 기울임 (Italic)</label>
       <div class="form-row"><label class="form-label">투명도</label><input type="range" id="wm_opacity" min="0.1" max="1" step="0.05" value="0.5"><span id="wm_opacity_v" style="font-size:.75rem;color:#b3b3b3;width:40px;text-align:right">50%</span></div>
       <div class="form-row"><label class="form-label">크기(%)</label><input type="range" id="wm_size" min="2" max="20" step="1" value="6"><span id="wm_size_v" style="font-size:.75rem;color:#b3b3b3;width:40px;text-align:right">6%</span></div>
-      <div class="form-row"><label class="form-label">위치</label><select class="form-input" id="wm_pos"><option value="drag" selected>🖱 드래그 위치 (미리보기에서 끌기)</option><option value="center">중앙</option><option value="br">우하단</option><option value="bl">좌하단</option><option value="tr">우상단</option><option value="tl">좌상단</option><option value="tile">타일 반복</option></select></div>
+      <div class="form-row"><label class="form-label">위치</label><select class="form-input" id="wm_pos"><option value="drag" selected>🖱 드래그 위치 (미리보기에서 끌기)</option><option value="tile">🔁 타일 반복 (배경 전체)</option><option value="center">중앙</option><option value="br">우하단</option><option value="bl">좌하단</option><option value="tr">우상단</option><option value="tl">좌상단</option></select></div>
       <div class="form-row"><label class="form-label">색상</label><input type="color" id="wm_color" value="#ffffff"></div>
       <button class="btn btn-go" data-run="watermark">👁 미리보기 생성</button>
     </div>
@@ -1046,79 +1046,124 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
 
   // ---- Background removal (browser ONNX U²-Net) ----
   async function runBgRemove(){
+    if (!currentImage) { notify('이미지를 먼저 선택하세요.', true); return; }
     showLoader('AI 모델 로딩 중...', '첫 실행 시 U²-Net 모델(~40MB) 다운로드. 다음 실행은 캐시 사용.');
-    const removeBackground = await window.__loadBgRemoval();
-    const W = currentImage.width, H = currentImage.height;
-    const src = makeCanvas(W, H);
-    src.getContext('2d').drawImage(currentImage, 0, 0);
-    const blob = await new Promise(res => src.toBlob(res, 'image/png'));
+    let removeBackground;
+    try {
+      removeBackground = await window.__loadBgRemoval();
+    } catch (e) {
+      hideLoader();
+      console.error('[bg_remove] loader failed:', e);
+      notify('배경 제거 모델 로드 실패: ' + (e.message || e) + ' (네트워크 확인 후 새로고침)', true);
+      return;
+    }
+    try {
+      const W = currentImage.width, H = currentImage.height;
+      const src = makeCanvas(W, H);
+      src.getContext('2d').drawImage(currentImage, 0, 0);
+      const blob = await new Promise(res => src.toBlob(res, 'image/png'));
 
-    showLoader('배경 분리 중...', '이미지 크기에 따라 5~30초 소요됩니다.');
-    const resultBlob = await removeBackground(blob);
-    const url = URL.createObjectURL(resultBlob);
-    const im = new Image();
-    await new Promise((res, rej) => { im.onload = res; im.onerror = rej; im.src = url; });
-    const out = makeCanvas(im.width, im.height);
-    out.getContext('2d').drawImage(im, 0, 0);
-    URL.revokeObjectURL(url);
-    showResult(out);
-    setPendingResult(out, `${baseName()}_no_bg.png`);
-    hideLoader();
-    notify('배경 제거 완료 (투명 PNG) — 확인 후 다운로드');
+      showLoader('배경 분리 중...', '이미지 크기에 따라 5~30초 소요됩니다.');
+      const resultBlob = await removeBackground(blob);
+      const url = URL.createObjectURL(resultBlob);
+      const im = new Image();
+      await new Promise((res, rej) => { im.onload = res; im.onerror = rej; im.src = url; });
+      const out = makeCanvas(im.width, im.height);
+      out.getContext('2d').drawImage(im, 0, 0);
+      URL.revokeObjectURL(url);
+      showResult(out);
+      setPendingResult(out, `${baseName()}_no_bg.png`);
+      hideLoader();
+      notify('배경 제거 완료 (투명 PNG) — 확인 후 다운로드');
+    } catch (e) {
+      hideLoader();
+      console.error('[bg_remove] run failed:', e);
+      notify('배경 제거 실패: ' + (e.message || e), true);
+    }
   }
 
-  // ---- Person removal (U²-Net mask + OpenCV inpaint) ----
+  // ---- Person removal: U²-Net mask + pure JS edge-pull inpainting (NO OpenCV) ----
   async function runPersonRemove(){
-    showLoader('AI 모델 로딩 중...', '첫 실행 시 U²-Net(~40MB) 다운로드.');
-    const removeBackground = await window.__loadBgRemoval();
-
-    const W = currentImage.width, H = currentImage.height;
-    const src = makeCanvas(W, H);
-    src.getContext('2d').drawImage(currentImage, 0, 0);
-    const srcBlob = await new Promise(res => src.toBlob(res, 'image/png'));
-
-    showLoader('사람 마스크 추출 중...', '잠시만 기다려주세요.');
-    const cutBlob = await removeBackground(srcBlob);
-    const cutUrl = URL.createObjectURL(cutBlob);
-    const cutImg = new Image();
-    await new Promise((res, rej) => { cutImg.onload = res; cutImg.onerror = rej; cutImg.src = cutUrl; });
-    URL.revokeObjectURL(cutUrl);
-
-    showLoader('OpenCV.js 로딩 중...', '첫 실행 시 ~9MB 다운로드.');
-    const cv = await loadOpenCV();
-    showLoader('inpaint로 배경 복원 중...', '');
-    await new Promise(r => setTimeout(r, 30));
-
-    // Build mask from alpha channel (foreground = person)
-    const maskCanvas = makeCanvas(W, H);
-    maskCanvas.getContext('2d').drawImage(cutImg, 0, 0, W, H);
-    const maskData = maskCanvas.getContext('2d').getImageData(0, 0, W, H);
-    const maskMat = new cv.Mat(H, W, cv.CV_8UC1);
-    for (let i=0, j=0; i<maskData.data.length; i+=4, j++){
-      maskMat.data[j] = maskData.data[i+3] > 30 ? 255 : 0;
+    if (!currentImage) { notify('이미지를 먼저 선택하세요.', true); return; }
+    showLoader('AI 모델 로딩 중...', '첫 실행 시 U²-Net(~40MB) 다운로드. 다음 실행은 캐시 사용.');
+    let removeBackground;
+    try {
+      removeBackground = await window.__loadBgRemoval();
+    } catch (e) {
+      hideLoader();
+      console.error('[person_remove] loader failed:', e);
+      notify('AI 모델 로드 실패: ' + (e.message || e) + ' (네트워크 확인 후 새로고침)', true);
+      return;
     }
-    // Dilate mask slightly to avoid edge artifacts
-    const kernel = cv.Mat.ones(5, 5, cv.CV_8U);
-    const dilated = new cv.Mat();
-    cv.dilate(maskMat, dilated, kernel);
+    try {
+      const W = currentImage.width, H = currentImage.height;
+      const src = makeCanvas(W, H);
+      src.getContext('2d').drawImage(currentImage, 0, 0);
+      const srcBlob = await new Promise(res => src.toBlob(res, 'image/png'));
 
-    const srcMat = cv.imread(src);
-    const rgbMat = new cv.Mat();
-    cv.cvtColor(srcMat, rgbMat, cv.COLOR_RGBA2RGB);
-    const dstMat = new cv.Mat();
-    const radius = parseInt($('pr_radius').value) || 10;
-    cv.inpaint(rgbMat, dilated, dstMat, radius, cv.INPAINT_TELEA);
-    const outMat = new cv.Mat();
-    cv.cvtColor(dstMat, outMat, cv.COLOR_RGB2RGBA);
+      showLoader('사람 마스크 추출 중...', '잠시만 기다려주세요.');
+      const cutBlob = await removeBackground(srcBlob);
+      const cutUrl = URL.createObjectURL(cutBlob);
+      const cutImg = new Image();
+      await new Promise((res, rej) => { cutImg.onload = res; cutImg.onerror = rej; cutImg.src = cutUrl; });
+      URL.revokeObjectURL(cutUrl);
 
-    const out = makeCanvas(W, H);
-    cv.imshow(out, outMat);
-    srcMat.delete(); maskMat.delete(); kernel.delete(); dilated.delete(); rgbMat.delete(); dstMat.delete(); outMat.delete();
+      showLoader('배경 복원 중...', '주변 픽셀로 채우는 중입니다.');
+      await new Promise(r => setTimeout(r, 30));
 
-    showResult(out);
-    downloadCanvas(out, `${baseName()}_person_removed.png`);
-    hideLoader();
-    notify('사람 제거 완료');
+      // Build binary mask from cut image alpha (alpha>30 = person area to inpaint)
+      const maskCanvas = makeCanvas(W, H);
+      maskCanvas.getContext('2d').drawImage(cutImg, 0, 0, W, H);
+      const maskAlpha = maskCanvas.getContext('2d').getImageData(0, 0, W, H).data;
+      // Dilate mask by ~3px to avoid halo artifacts
+      const dilateR = 3;
+      const raw = new Uint8Array(W * H);
+      for (let i = 0; i < W * H; i++) raw[i] = maskAlpha[i*4+3] > 30 ? 1 : 0;
+      const mask = new Uint8Array(W * H);
+      for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+          if (raw[y*W+x]) { mask[y*W+x] = 1; continue; }
+          let hit = false;
+          for (let dy = -dilateR; dy <= dilateR && !hit; dy++) {
+            for (let dx = -dilateR; dx <= dilateR && !hit; dx++) {
+              const nx = x+dx, ny = y+dy;
+              if (nx>=0 && nx<W && ny>=0 && ny<H && raw[ny*W+nx]) hit = true;
+            }
+          }
+          if (hit) mask[y*W+x] = 1;
+        }
+      }
+
+      const sctx = src.getContext('2d');
+      const imgData = sctx.getImageData(0, 0, W, H);
+      const data = imgData.data;
+      const out = new Uint8ClampedArray(data);
+
+      for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+          const i = y * W + x;
+          if (!mask[i]) continue;
+          let r=0,g=0,b=0,n=0;
+          for (let xx=x-1; xx>=0; xx--) if (!mask[y*W+xx]) { const p=(y*W+xx)*4; r+=data[p];g+=data[p+1];b+=data[p+2];n++;break; }
+          for (let xx=x+1; xx<W; xx++) if (!mask[y*W+xx]) { const p=(y*W+xx)*4; r+=data[p];g+=data[p+1];b+=data[p+2];n++;break; }
+          for (let yy=y-1; yy>=0; yy--) if (!mask[yy*W+x]) { const p=(yy*W+x)*4; r+=data[p];g+=data[p+1];b+=data[p+2];n++;break; }
+          for (let yy=y+1; yy<H; yy++) if (!mask[yy*W+x]) { const p=(yy*W+x)*4; r+=data[p];g+=data[p+1];b+=data[p+2];n++;break; }
+          if (n>0) { const op=i*4; out[op]=r/n; out[op+1]=g/n; out[op+2]=b/n; out[op+3]=255; }
+        }
+      }
+
+      const result = makeCanvas(W, H);
+      result.getContext('2d').putImageData(new ImageData(out, W, H), 0, 0);
+
+      showResult(result);
+      setPendingResult(result, `${baseName()}_person_removed.png`);
+      hideLoader();
+      notify('사람 제거 완료 — 확인 후 다운로드');
+    } catch (e) {
+      hideLoader();
+      console.error('[person_remove] run failed:', e);
+      notify('사람 제거 실패: ' + (e.message || e), true);
+    }
   }
 
 })();
