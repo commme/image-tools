@@ -193,7 +193,7 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
       </div>
       <div class="form-row"><label class="form-label">행</label><input type="number" class="form-input" id="sp_rows" value="2" min="1" max="10"></div>
       <div class="form-row"><label class="form-label">열</label><input type="number" class="form-input" id="sp_cols" value="2" min="1" max="10"></div>
-      <button class="btn btn-go" data-run="split">👁 분할 미리보기 + ZIP</button>
+      <button class="btn btn-go" data-run="split">👁 분할 미리보기</button>
     </div>
 
     <div id="opt-merge" class="opt-panel">
@@ -430,18 +430,29 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
     const sy = overlay.height / r.height;
     return { x: (e.clientX - r.left) * sx, y: (e.clientY - r.top) * sy };
   }
+  // If a committed result is showing and user starts dragging text/watermark, restore
+  // preview to the ORIGINAL image so the previously-committed text/watermark is removed.
+  // The new position is shown as a ghost overlay only — user must click 미리보기 again to commit.
+  function restoreOriginalForMove(){
+    if (!currentImage) return;
+    if (pendingResult) {
+      drawPreview(currentImage); // resets previewCanvas to original
+      clearPendingResult();
+    }
+  }
   overlay.addEventListener('mousedown', e => {
     const p = overlayPoint(e);
     if (currentFeature === 'watermark_remove') {
       dragStart = p;
       selRect = { x: p.x, y: p.y, w: 0, h: 0 };
     } else if (currentFeature === 'watermark') {
+      restoreOriginalForMove();
       wmDragXY = { x: p.x, y: p.y };
-      // Auto-switch wm_pos to drag when user drags
       const sel = $('wm_pos'); if (sel) sel.value = 'drag';
       drawWmPreview();
-      dragStart = p; // enable move tracking
+      dragStart = p;
     } else if (currentFeature === 'text') {
+      restoreOriginalForMove();
       txDragXY = { x: p.x, y: p.y };
       const xRange = $('tx_x'), yRange = $('tx_y');
       if (xRange) { xRange.value = Math.round(p.x / overlay.width * 100); xRange.dispatchEvent(new Event('input')); }
@@ -719,9 +730,11 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
     ctx.textBaseline = 'middle';
     const m = ctx.measureText(text);
     const pad = fontPx * 0.5;
-    if (pos === 'drag' && wmDragXY) {
+    if (pos === 'drag') {
+      // If user hasn't dragged yet, default to canvas center
+      const dxy = wmDragXY || { x: canvas.width/2, y: canvas.height/2 };
       ctx.textAlign = 'center';
-      ctx.fillText(text, wmDragXY.x, wmDragXY.y);
+      ctx.fillText(text, dxy.x, dxy.y);
       ctx.textAlign = 'start';
     } else if (pos === 'tile') {
       ctx.save();
@@ -792,29 +805,41 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
       r.onload = e => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = e.target.result; };
       r.onerror = rej; r.readAsDataURL(f);
     })));
+    // Normalize to a common dimension so different aspect-ratio images line up.
+    // Horizontal: scale all to same height. Vertical: same width. Grid: same width × height (letterbox).
     let canvas;
     if (dir === 'h') {
-      const h = Math.max(...imgs.map(i => i.height));
-      const w = imgs.reduce((s,i)=>s+i.width, 0) + gap * (imgs.length-1);
-      canvas = makeCanvas(w, h);
+      const H = Math.min(...imgs.map(i => i.height));
+      const scaled = imgs.map(i => ({ w: Math.round(i.width * H / i.height), h: H, img: i }));
+      const W = scaled.reduce((s,i)=>s+i.w, 0) + gap * (scaled.length-1);
+      canvas = makeCanvas(W, H);
       const ctx = canvas.getContext('2d'); let x = 0;
-      imgs.forEach(i => { ctx.drawImage(i, x, 0); x += i.width + gap; });
+      scaled.forEach(i => { ctx.drawImage(i.img, x, 0, i.w, i.h); x += i.w + gap; });
     } else if (dir === 'v') {
-      const w = Math.max(...imgs.map(i => i.width));
-      const h = imgs.reduce((s,i)=>s+i.height, 0) + gap * (imgs.length-1);
-      canvas = makeCanvas(w, h);
+      const W = Math.min(...imgs.map(i => i.width));
+      const scaled = imgs.map(i => ({ w: W, h: Math.round(i.height * W / i.width), img: i }));
+      const H = scaled.reduce((s,i)=>s+i.h, 0) + gap * (scaled.length-1);
+      canvas = makeCanvas(W, H);
       const ctx = canvas.getContext('2d'); let y = 0;
-      imgs.forEach(i => { ctx.drawImage(i, 0, y); y += i.height + gap; });
+      scaled.forEach(i => { ctx.drawImage(i.img, 0, y, i.w, i.h); y += i.h + gap; });
     } else {
+      // Grid: each cell uses the smallest common width × height; each image fits letterboxed.
       const cols = Math.ceil(Math.sqrt(imgs.length));
       const rows = Math.ceil(imgs.length / cols);
-      const cw = Math.max(...imgs.map(i => i.width));
-      const ch = Math.max(...imgs.map(i => i.height));
-      canvas = makeCanvas(cw*cols + gap*(cols-1), ch*rows + gap*(rows-1));
+      const cellW = Math.min(...imgs.map(i => i.width));
+      const cellH = Math.min(...imgs.map(i => i.height));
+      canvas = makeCanvas(cellW*cols + gap*(cols-1), cellH*rows + gap*(rows-1));
       const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#000'; ctx.fillRect(0,0,canvas.width,canvas.height);
       imgs.forEach((i, idx) => {
         const r = Math.floor(idx/cols), c = idx%cols;
-        ctx.drawImage(i, c*(cw+gap), r*(ch+gap));
+        // Fit image into cell while preserving aspect ratio (letterbox/pillarbox)
+        const scale = Math.min(cellW / i.width, cellH / i.height);
+        const dw = Math.round(i.width * scale);
+        const dh = Math.round(i.height * scale);
+        const dx = c*(cellW+gap) + Math.round((cellW - dw)/2);
+        const dy = r*(cellH+gap) + Math.round((cellH - dh)/2);
+        ctx.drawImage(i, dx, dy, dw, dh);
       });
     }
     showResult(canvas);
@@ -892,6 +917,7 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
 
   // ---- Watermark removal (OpenCV inpaint with rect mask) ----
   async function runWatermarkRemove(){
+    console.log('[wm-remove] start, selRect=', selRect);
     if (!selRect || selRect.w < 4 || selRect.h < 4) {
       notify('미리보기에서 워터마크 영역을 드래그하여 선택하세요.', true);
       return;
@@ -900,8 +926,10 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
     let cv;
     try {
       cv = await loadOpenCV();
+      console.log('[wm-remove] OpenCV loaded, version:', cv.getBuildInformation ? 'OK' : 'partial');
     } catch (e) {
       hideLoader();
+      console.error('[wm-remove] OpenCV load failed:', e);
       notify('OpenCV.js 로드 실패: ' + (e.message || e) + ' (네트워크 확인 후 새로고침)', true);
       return;
     }
