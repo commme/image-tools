@@ -263,13 +263,49 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
 <!-- JSZip CDN for split feature -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha512-XMVd28F1oH/O71fzwBnV7HucLxVwtxf26XV8P4wPk26EDxuGZ91N8bsOttmnomcCD3CS5ZMRL50H0GgOHvegtg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
-<!-- @imgly/background-removal ESM (lazy: imported on demand inside module script below) -->
+<!-- transformers.js + Xenova/modnet (HF CDN, reliable). Lazy load. -->
 <script type="module">
-  // Expose loader for non-module script
+  // removeBackground(blob, {progress}) -> blob (PNG with alpha)
   window.__loadBgRemoval = async () => {
     if (window.__removeBackground) return window.__removeBackground;
-    const mod = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.4.5/+esm');
-    window.__removeBackground = mod.removeBackground || mod.default;
+    const onProg = (p) => { if (window.__bgProgressCb) window.__bgProgressCb(p); };
+    const tf = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0');
+    const { env, AutoModel, AutoProcessor, RawImage } = tf;
+    env.allowLocalModels = false;
+    env.useBrowserCache = true;
+
+    const model = await AutoModel.from_pretrained('Xenova/modnet', {
+      quantized: false,
+      progress_callback: onProg
+    });
+    const processor = await AutoProcessor.from_pretrained('Xenova/modnet', {
+      progress_callback: onProg
+    });
+
+    window.__removeBackground = async (blob, opts = {}) => {
+      window.__bgProgressCb = opts.progress || null;
+      const image = await RawImage.fromBlob(blob);
+      const { pixel_values } = await processor(image);
+      const { output } = await model({ input: pixel_values });
+      // output: [1, 1, H, W] float in [0,1]
+      const maskRaw = await RawImage.fromTensor(output[0].mul(255).to('uint8'));
+      const maskResized = await maskRaw.resize(image.width, image.height);
+
+      // Composite original RGB + mask alpha
+      const cv = document.createElement('canvas');
+      cv.width = image.width; cv.height = image.height;
+      const cctx = cv.getContext('2d');
+      const srcImg = new Image();
+      const srcUrl = URL.createObjectURL(blob);
+      await new Promise((res, rej) => { srcImg.onload = res; srcImg.onerror = rej; srcImg.src = srcUrl; });
+      cctx.drawImage(srcImg, 0, 0, image.width, image.height);
+      URL.revokeObjectURL(srcUrl);
+      const px = cctx.getImageData(0, 0, image.width, image.height);
+      const m = maskResized.data;
+      for (let i = 0; i < m.length; i++) px.data[i*4 + 3] = m[i];
+      cctx.putImageData(px, 0, 0);
+      return await new Promise(r => cv.toBlob(r, 'image/png'));
+    };
     return window.__removeBackground;
   };
 </script>
@@ -1064,7 +1100,13 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
       const blob = await new Promise(res => src.toBlob(res, 'image/png'));
 
       showLoader('배경 분리 중...', '이미지 크기에 따라 5~30초 소요됩니다.');
-      const resultBlob = await removeBackground(blob);
+      const resultBlob = await removeBackground(blob, {
+        progress: (p) => {
+          const pct = p && p.progress ? Math.round(p.progress) : 0;
+          showLoader('AI 모델 다운로드 중...', `${p?.file || ''} ${pct}%`);
+          console.log('[bg-progress]', p);
+        }
+      });
       const url = URL.createObjectURL(resultBlob);
       const im = new Image();
       await new Promise((res, rej) => { im.onload = res; im.onerror = rej; im.src = url; });
@@ -1102,7 +1144,13 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
       const srcBlob = await new Promise(res => src.toBlob(res, 'image/png'));
 
       showLoader('사람 마스크 추출 중...', '잠시만 기다려주세요.');
-      const cutBlob = await removeBackground(srcBlob);
+      const cutBlob = await removeBackground(srcBlob, {
+        progress: (p) => {
+          const pct = p && p.progress ? Math.round(p.progress) : 0;
+          showLoader('AI 모델 다운로드 중...', `${p?.file || ''} ${pct}%`);
+          console.log('[person-progress]', p);
+        }
+      });
       const cutUrl = URL.createObjectURL(cutBlob);
       const cutImg = new Image();
       await new Promise((res, rej) => { cutImg.onload = res; cutImg.onerror = rej; cutImg.src = cutUrl; });
