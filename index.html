@@ -124,7 +124,7 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
       <div class="drop-icon">📁</div>
       <div class="drop-text"><strong>파일 선택</strong> 또는 드래그</div>
       <div class="drop-hint">PNG · JPG · WEBP</div>
-      <input type="file" id="fileInput" accept="image/*" hidden>
+      <input type="file" id="fileInput" accept="image/*" multiple hidden>
     </div>
     <div id="preview" class="img-preview">
       <div class="canvas-wrap">
@@ -175,7 +175,7 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
       <label class="chk-row"><input type="checkbox" id="wm_italic"> 기울임 (Italic)</label>
       <div class="form-row"><label class="form-label">투명도</label><input type="range" id="wm_opacity" min="0.1" max="1" step="0.05" value="0.5"><span id="wm_opacity_v" style="font-size:.75rem;color:#b3b3b3;width:40px;text-align:right">50%</span></div>
       <div class="form-row"><label class="form-label">크기(%)</label><input type="range" id="wm_size" min="2" max="20" step="1" value="6"><span id="wm_size_v" style="font-size:.75rem;color:#b3b3b3;width:40px;text-align:right">6%</span></div>
-      <div class="form-row"><label class="form-label">위치</label><select class="form-input" id="wm_pos"><option value="drag">🖱 드래그 위치</option><option value="center">중앙</option><option value="br" selected>우하단</option><option value="bl">좌하단</option><option value="tr">우상단</option><option value="tl">좌상단</option><option value="tile">타일 반복</option></select></div>
+      <div class="form-row"><label class="form-label">위치</label><select class="form-input" id="wm_pos"><option value="drag" selected>🖱 드래그 위치 (미리보기에서 끌기)</option><option value="center">중앙</option><option value="br">우하단</option><option value="bl">좌하단</option><option value="tr">우상단</option><option value="tl">좌상단</option><option value="tile">타일 반복</option></select></div>
       <div class="form-row"><label class="form-label">색상</label><input type="color" id="wm_color" value="#ffffff"></div>
       <button class="btn btn-go" data-run="watermark">👁 미리보기 생성</button>
     </div>
@@ -312,10 +312,15 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
   function hideLoader(){ loader.classList.remove('show'); }
 
   // Pending result (preview shown, awaiting user confirmation to download)
-  let pendingResult = null; // { canvas, filename }
+  // Supports either a canvas (PNG export) OR a pre-built blob (e.g. ZIP for split)
+  let pendingResult = null; // { canvas?, blob?, filename }
   const resultBar = () => $('resultBar');
   function setPendingResult(canvas, filename){
     pendingResult = { canvas, filename };
+    resultBar().classList.remove('hidden');
+  }
+  function setPendingBlob(blob, filename){
+    pendingResult = { blob, filename };
     resultBar().classList.remove('hidden');
   }
   function clearPendingResult(){
@@ -381,13 +386,35 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
   // Drag & drop
   ['dragenter','dragover'].forEach(ev => dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.add('drag-over'); }));
   ['dragleave','drop'].forEach(ev => dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('drag-over'); }));
-  dropzone.addEventListener('drop', e => { if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]); });
+  // Accept multi-file: 2+ images → auto-route to merge feature, populate mergeFiles
+  function handleMultiFiles(files){
+    const list = Array.from(files).filter(f => f && f.type && f.type.startsWith('image/'));
+    if (!list.length) return;
+    if (list.length === 1) { loadFile(list[0]); return; }
+    // Multi-file path: load first as preview + push all to merge accumulator
+    loadFile(list[0]);
+    mergeFiles = mergeFiles.concat(list);
+    renderMergeThumbs();
+    // Switch the right panel to merge feature so user immediately sees thumbnails
+    const mergeChip = document.querySelector('.feat[data-id="merge"]');
+    if (mergeChip) mergeChip.click();
+    notify(`${list.length}장 추가됨 — '이미지 합치기' 모드로 이동`);
+  }
+  dropzone.addEventListener('drop', e => { if (e.dataTransfer.files.length) handleMultiFiles(e.dataTransfer.files); });
   dropzone.addEventListener('click', () => fileInput.click());
-  fileInput.addEventListener('change', e => { if (e.target.files[0]) loadFile(e.target.files[0]); });
+  fileInput.addEventListener('change', e => { if (e.target.files.length) handleMultiFiles(e.target.files); fileInput.value=''; });
   $('changeBtn').addEventListener('click', () => { fileInput.value=''; fileInput.click(); });
   $('downloadBtn').addEventListener('click', () => {
     if (!pendingResult) return;
-    downloadCanvas(pendingResult.canvas, pendingResult.filename);
+    if (pendingResult.blob) {
+      const url = URL.createObjectURL(pendingResult.blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = pendingResult.filename;
+      document.body.appendChild(a); a.click();
+      setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 100);
+    } else if (pendingResult.canvas) {
+      downloadCanvas(pendingResult.canvas, pendingResult.filename);
+    }
     notify('다운로드 시작');
   });
   $('revertBtn').addEventListener('click', () => {
@@ -651,8 +678,8 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
   // ---- Lazy loaders ----
   let opencvPromise = null;
   function loadOpenCV(){
-    if (opencvPromise) return opencvPromise;
     if (window.cv && window.cv.Mat) return Promise.resolve(window.cv);
+    if (opencvPromise) return opencvPromise;
     opencvPromise = new Promise((resolve, reject) => {
       const s = document.createElement('script');
       s.src = 'https://docs.opencv.org/4.10.0/opencv.js';
@@ -663,10 +690,10 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
         let waited = 0;
         const t = setInterval(() => {
           if (window.cv && window.cv.Mat) { clearInterval(t); resolve(window.cv); }
-          else if ((waited += 100) > 30000) { clearInterval(t); reject(new Error('OpenCV 로딩 시간 초과')); }
+          else if ((waited += 100) > 30000) { clearInterval(t); opencvPromise = null; reject(new Error('OpenCV 로딩 시간 초과')); }
         }, 100);
       };
-      s.onerror = () => reject(new Error('OpenCV.js 로드 실패'));
+      s.onerror = () => { opencvPromise = null; reject(new Error('OpenCV.js 로드 실패 — 네트워크 확인')); };
       document.head.appendChild(s);
     });
     return opencvPromise;
@@ -730,24 +757,28 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
     const zip = new JSZip();
     const tw = Math.floor(currentImage.width / cols);
     const th = Math.floor(currentImage.height / rows);
-    const pieces = [];
+    // Build a preview grid canvas (visualize cut lines on top of original)
+    const preview = makeCanvas(currentImage.width, currentImage.height);
+    const pctx = preview.getContext('2d');
+    pctx.drawImage(currentImage, 0, 0);
+    pctx.strokeStyle = '#1ed760';
+    pctx.lineWidth = Math.max(2, Math.round(Math.min(currentImage.width, currentImage.height) / 200));
+    pctx.setLineDash([pctx.lineWidth*4, pctx.lineWidth*2]);
+    for (let c=1; c<cols; c++){ pctx.beginPath(); pctx.moveTo(c*tw, 0); pctx.lineTo(c*tw, currentImage.height); pctx.stroke(); }
+    for (let r=1; r<rows; r++){ pctx.beginPath(); pctx.moveTo(0, r*th); pctx.lineTo(currentImage.width, r*th); pctx.stroke(); }
+
     for (let r=0; r<rows; r++){
       for (let c=0; c<cols; c++){
         const canvas = makeCanvas(tw, th);
         canvas.getContext('2d').drawImage(currentImage, c*tw, r*th, tw, th, 0, 0, tw, th);
         const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
         zip.file(`piece_${r+1}_${c+1}.png`, blob);
-        pieces.push(canvas);
       }
     }
-    if (pieces[0]) showResult(pieces[0]);
-    const blob = await zip.generateAsync({type:'blob'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `${baseName()}_split_${rows}x${cols}.zip`;
-    document.body.appendChild(a); a.click();
-    setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 100);
-    notify(`${rows*cols}조각 ZIP 다운로드 완료`);
+    const zipBlob = await zip.generateAsync({type:'blob'});
+    showResult(preview);
+    setPendingBlob(zipBlob, `${baseName()}_split_${rows}x${cols}.zip`);
+    notify(`${rows*cols}조각 분할 미리보기 — 확인 후 ZIP 다운로드`);
   }
 
   // ---- Merge ----
