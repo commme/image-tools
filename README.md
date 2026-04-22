@@ -15,7 +15,7 @@
 | 4 | 텍스트 추가 | ✅ | ✅ | 위치/색/배경박스 |
 | 5 | 업스케일링 | ✅ | ✅ | 2x/3x/4x + 샤픈 |
 | 6 | 워터마크 제거 | ✅ | ✅ | 웹: 브러쉬 + 순수 JS edge-pull inpainting (의존성 0) · 로컬: opencv-python |
-| 7 | 배경 제거 | ✅ | ✅ | 웹: transformers.js + Xenova/modnet (HF CDN, ~25MB) · 로컬: rembg |
+| 7 | 배경 제거 | ✅ | ✅ | 웹: transformers.js + briaai/RMBG-1.4 SOTA (HF CDN, ~80MB) · 로컬: rembg |
 | 8 | 사람 제거 | ✅ | ✅ | 웹: U²-Net 마스크 + 순수 JS edge-pull inpainting · 로컬: rembg + opencv |
 
 > v1.1부터 무거운 AI 처리(6~8)도 브라우저에서 실행됩니다 (ONNX/WebAssembly).
@@ -128,6 +128,7 @@ Python + Flask로 이미지 편집 웹 도구를 만들어줘.
 | **v1.2** | **2026-04-22** | **UX 옵션 확장** — 워터마크/텍스트 **드래그로 위치 이동** · **글씨체 8종**(Pretendard / Noto Serif KR / 손글씨 / Georgia / Impact 등) · **굵기 4단계 + Italic** · 이미지 분할 **프리셋 버튼 7종**(1×2~4×4) · 이미지 합치기 **썸네일 + 누적 추가/개별 제거** |
 | **v1.3** | **2026-04-22** | **미리보기 흐름 통일 + 버그 픽스** — 모든 "실행" 버튼 → **"👁 미리보기"** 로 변경 (확인 후 다운로드 2단계) · **텍스트 복제 현상 해결** (`showResult`에서 드래그 좌표 리셋) · **워터마크 제거 무한 버퍼링 해결** (`new cv.Mat.zeros` → `cv.Mat.zeros` 정정 + try/catch + OpenCV 로드 실패 메시지) |
 | **v1.4** | **2026-04-22** | **분할/합치기/드래그 UX 추가 보강** — ① 워터마크 위치 기본값 **🖱 드래그 위치 (selected)** 로 변경 · ② **분할도 미리보기 후 다운로드** (그리드 가이드 라인 + ZIP은 다운로드 버튼 클릭 시 저장, `setPendingBlob` 추가) · ③ **메인 파일 선택 다중 지원** (2장 이상 선택 시 자동 '이미지 합치기' 모드로 전환 + 썸네일 적재) · ④ 워터마크 제거 OpenCV 로드 실패 시 **promise 캐시 초기화** (재시도 가능) |
+| **v1.6.3** | **2026-04-22** | **타일 워터마크 정밀 컨트롤 + 배경 제거 모델 업그레이드** — ① 타일 옵션에 **간격(50~400%) + 회전(-90°~90°) 슬라이더** 추가, 회전 후 대각선 전체 커버하도록 알고리즘 개선 (잘림 없음) · ② 배경 제거 모델을 Xenova/modnet → **briaai/RMBG-1.4** (SOTA, 얼굴/머리카락 경계 보존 우수)로 업그레이드 |
 | **v1.6.2** | **2026-04-22** | **AI 모델 백엔드 교체 (@imgly → transformers.js)** — 원인: @imgly/background-removal-data 패키지가 jsdelivr 150MB 한도 초과로 모델 파일이 사실상 다운로드 불가능 → CDN 404로 무한 hang. 해결: **transformers.js + Xenova/modnet** (Hugging Face CDN, 검증된 인물 분할 ONNX 모델 ~25MB)로 교체. 진행률 콜백 + 캐시 사용. 배경/사람 제거 모두 정상 동작 |
 | **v1.6.1** | **2026-04-22** | **배경/사람 제거 OpenCV 의존 제거 + try/catch 추가 + 타일 옵션 상위 노출** — ① 사람 제거를 OpenCV inpaint → **순수 JS edge-pull inpainting + 3px dilate** 로 교체 (9MB CDN 로드 실패로 인한 무한 버퍼링 근절) · ② 배경 제거 / 사람 제거 모두 **try/catch 래핑 + 사용자 알림** (모델 로드 실패 시 hideLoader + notify) · ③ 워터마크 위치 select에서 **🔁 타일 반복** 옵션을 상단으로 이동 (잘 보이도록) |
 | **v1.6** | **2026-04-22** | **워터마크 제거 브러쉬 모드 + 라이브 프리뷰 전환** — ① 워터마크 제거를 **드래그 사각형 → 브러쉬 페인팅**으로 변경, OpenCV.js(9MB) 의존 완전 제거 → **순수 JS edge-pull inpainting** (좌/우/상/하 4방향 가장 가까운 비마스크 픽셀 평균) · 1~3초 내 완료 · 무한 버퍼링 버그 근절 · ② 텍스트/워터마크 드래그 시 overlay ghost → **previewCanvas 라이브 렌더링**으로 전환 (배경 사라짐 버그 해결) · ③ 브러쉬 크기 슬라이더 5~120px + 마스크 지우기 버튼 추가 |
@@ -156,5 +157,7 @@ MIT License — © 2026 COMMME. All rights reserved.
 | [rembg](https://github.com/danielgatis/rembg) | MIT | AI 배경 제거 |
 | [onnxruntime](https://onnxruntime.ai/) | MIT | AI 모델 실행 |
 | [opencv-python-headless](https://opencv.org/) | Apache-2.0 | 워터마크/사람 제거 inpainting |
+| [transformers.js](https://github.com/huggingface/transformers.js) | Apache-2.0 | 브라우저 ONNX 추론 |
+| [briaai/RMBG-1.4](https://huggingface.co/briaai/RMBG-1.4) | CreativeML Open RAIL-M (비상업 가중치) | 배경 제거 AI 모델 |
 
 > 이 프로젝트는 Claude Code (Anthropic)의 도움으로 제작되었습니다.

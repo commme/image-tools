@@ -177,6 +177,9 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
       <div class="form-row"><label class="form-label">크기(%)</label><input type="range" id="wm_size" min="2" max="20" step="1" value="6"><span id="wm_size_v" style="font-size:.75rem;color:#b3b3b3;width:40px;text-align:right">6%</span></div>
       <div class="form-row"><label class="form-label">위치</label><select class="form-input" id="wm_pos"><option value="drag" selected>🖱 드래그 위치 (미리보기에서 끌기)</option><option value="tile">🔁 타일 반복 (배경 전체)</option><option value="center">중앙</option><option value="br">우하단</option><option value="bl">좌하단</option><option value="tr">우상단</option><option value="tl">좌상단</option></select></div>
       <div class="form-row"><label class="form-label">색상</label><input type="color" id="wm_color" value="#ffffff"></div>
+      <div class="form-row"><label class="form-label">타일 간격</label><input type="range" id="wm_tile_gap" min="50" max="400" step="10" value="150"><span id="wm_tile_gap_v" style="font-size:.75rem;color:#b3b3b3;width:40px;text-align:right">150%</span></div>
+      <div class="form-row"><label class="form-label">타일 회전</label><input type="range" id="wm_tile_rot" min="-90" max="90" step="5" value="-22"><span id="wm_tile_rot_v" style="font-size:.75rem;color:#b3b3b3;width:40px;text-align:right">-22°</span></div>
+      <div style="font-size:.7rem;color:#888;margin:-4px 0 8px">↑ 타일 옵션은 위치 = "🔁 타일 반복" 선택 시에만 적용</div>
       <button class="btn btn-go" data-run="watermark">👁 미리보기 생성</button>
     </div>
 
@@ -274,11 +277,24 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
     env.allowLocalModels = false;
     env.useBrowserCache = true;
 
-    const model = await AutoModel.from_pretrained('Xenova/modnet', {
-      quantized: false,
+    // briaai/RMBG-1.4: SOTA general bg removal (얼굴/머리카락 경계 보존 우수)
+    const model = await AutoModel.from_pretrained('briaai/RMBG-1.4', {
+      config: { model_type: 'custom' },
       progress_callback: onProg
     });
-    const processor = await AutoProcessor.from_pretrained('Xenova/modnet', {
+    const processor = await AutoProcessor.from_pretrained('briaai/RMBG-1.4', {
+      config: {
+        do_normalize: true,
+        do_pad: false,
+        do_rescale: true,
+        do_resize: true,
+        image_mean: [0.5, 0.5, 0.5],
+        feature_extractor_type: 'ImageFeatureExtractor',
+        image_std: [1, 1, 1],
+        resample: 2,
+        rescale_factor: 0.00392156862745098,
+        size: { width: 1024, height: 1024 }
+      },
       progress_callback: onProg
     });
 
@@ -636,6 +652,8 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
   }
   bindRange('wm_opacity','wm_opacity_v', x => Math.round(x*100)+'%');
   bindRange('wm_size','wm_size_v', x => x+'%');
+  bindRange('wm_tile_gap','wm_tile_gap_v', x => x+'%');
+  bindRange('wm_tile_rot','wm_tile_rot_v', x => x+'°');
   bindRange('tx_x','tx_x_v');
   bindRange('tx_y','tx_y_v');
   bindRange('tx_size','tx_size_v', x => x+'%');
@@ -649,7 +667,7 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
     if (currentFeature === 'watermark') liveRenderWatermark();
     else if (currentFeature === 'text') liveRenderText();
   }
-  ['wm_text','wm_font','wm_weight','wm_italic','wm_size','wm_color','wm_opacity','wm_pos'].forEach(id => {
+  ['wm_text','wm_font','wm_weight','wm_italic','wm_size','wm_color','wm_opacity','wm_pos','wm_tile_gap','wm_tile_rot'].forEach(id => {
     const el = $(id); if (el) el.addEventListener('input', refreshLivePreview);
   });
   ['tx_text','tx_font','tx_weight','tx_italic','tx_size','tx_color','tx_x','tx_y'].forEach(id => {
@@ -804,14 +822,24 @@ input[type=color]{width:32px;height:28px;border:1px solid #333;border-radius:6px
     } else if (pos === 'tile') {
       ctx.save();
       ctx.globalAlpha = opacity * 0.8;
-      const stepX = m.width + fontPx * 2;
-      const stepY = fontPx * 3;
-      for (let y = fontPx; y < canvas.height + stepY; y += stepY) {
-        for (let x = -stepX; x < canvas.width + stepX; x += stepX) {
-          ctx.save(); ctx.translate(x, y); ctx.rotate(-Math.PI/8);
-          ctx.fillText(text, 0, 0); ctx.restore();
+      const gapPct = parseFloat($('wm_tile_gap')?.value || '150') / 100;
+      const rotDeg = parseFloat($('wm_tile_rot')?.value || '-22');
+      const rotRad = rotDeg * Math.PI / 180;
+      const stepX = (m.width + fontPx) * gapPct;
+      const stepY = fontPx * 2 * gapPct;
+      // Cover diagonal canvas after rotation
+      const diag = Math.sqrt(canvas.width*canvas.width + canvas.height*canvas.height);
+      ctx.textAlign = 'center';
+      for (let y = -diag; y < diag; y += stepY) {
+        for (let x = -diag; x < diag; x += stepX) {
+          ctx.save();
+          ctx.translate(canvas.width/2 + x, canvas.height/2 + y);
+          ctx.rotate(rotRad);
+          ctx.fillText(text, 0, 0);
+          ctx.restore();
         }
       }
+      ctx.textAlign = 'start';
       ctx.restore();
     } else {
       let x = canvas.width/2 - m.width/2, y = canvas.height/2;
