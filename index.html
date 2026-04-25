@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Image Tools — 브라우저에서 바로 (8가지 기능)</title>
-<meta name="description" content="설치 없이 브라우저에서 워터마크·분할·합치기·텍스트·업스케일·배경제거·사람제거·워터마크제거. 파일 업로드 없이 본인 PC에서만 처리됩니다.">
-<meta property="og:title" content="Image Tools — 브라우저에서 8가지 이미지 편집">
-<meta property="og:description" content="배경 제거, 사람 제거까지 브라우저에서. 업로드 없음.">
+<title>Image Tools — 브라우저에서 바로 (이미지 8종 + 영상 워터마크 제거)</title>
+<meta name="description" content="설치 없이 브라우저에서 워터마크·분할·합치기·텍스트·업스케일·배경제거·사람제거·워터마크제거 + 영상 워터마크 제거. 파일 업로드 없이 본인 PC에서만 처리됩니다.">
+<meta property="og:title" content="Image Tools — 브라우저에서 이미지 편집 + 영상 워터마크 제거">
+<meta property="og:description" content="배경 제거, 사람 제거, 영상 워터마크 제거까지 브라우저에서. 업로드 없음.">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -97,6 +97,10 @@ input[type=color]{width:36px;height:36px;border:var(--border-w) solid var(--ink)
 .footer{text-align:center;padding:40px 20px 32px;color:var(--ink-2);font-size:.76rem;line-height:1.7;font-weight:500;font-family:var(--mono);letter-spacing:.3px;border-top:var(--border-w) solid var(--ink);margin-top:32px;background:var(--surface-2)}
 .footer a{color:var(--ink);text-decoration:underline;font-weight:700;text-decoration-thickness:2px;text-underline-offset:2px}
 .footer a:hover{background:var(--accent);color:var(--ink)}
+.sns-row{display:flex;justify-content:center;gap:14px;margin:14px 0 6px}
+.sns-row a{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;background:var(--surface);border:var(--border-w) solid var(--ink);color:var(--ink);text-decoration:none;transition:transform .1s,box-shadow .1s,background .15s}
+.sns-row a:hover{background:var(--accent);transform:translate(-2px,-2px);box-shadow:var(--shadow-sm)}
+.sns-row svg{width:20px;height:20px;display:block}
 .hidden{display:none!important}
 .btn-preset{padding:7px 12px;border:var(--border-w) solid var(--ink);background:var(--surface);color:var(--ink);font-size:.76rem;font-weight:700;cursor:pointer;font-family:var(--mono);text-transform:uppercase;letter-spacing:.3px;transition:transform .1s,box-shadow .1s}
 .btn-preset:hover{transform:translate(-2px,-2px);box-shadow:3px 3px 0 var(--ink)}
@@ -131,8 +135,8 @@ input[type=color]{width:36px;height:36px;border:var(--border-w) solid var(--ink)
 <section class="hero">
   <div class="hero-inner">
     <h1>🖼️ Image Tools</h1>
-    <p class="subtitle">설치 없이 브라우저에서 8가지 이미지 편집 — 파일은 본인 PC에서만 처리됩니다.</p>
-    <div class="badge">🌐 웹 버전 · 8가지 기능 모두 브라우저에서 실행</div>
+    <p class="subtitle">브라우저에서 이미지 8종 편집 + 영상 워터마크 제거 — 파일은 본인 PC에서만 처리됩니다.</p>
+    <div class="badge">🌐 웹 버전 · 이미지 8 + 영상 1 = 9가지 기능</div>
     <p class="privacy-line">업로드 없음 · 서버 전송 없음 · AI 모델도 본인 디바이스에서 연산</p>
   </div>
 </section>
@@ -145,13 +149,14 @@ input[type=color]{width:36px;height:36px;border:var(--border-w) solid var(--ink)
     <div id="dropzone" class="dropzone">
       <div class="drop-icon">📁</div>
       <div class="drop-text"><strong>파일 선택</strong> 또는 드래그</div>
-      <div class="drop-hint">PNG · JPG · WEBP</div>
-      <input type="file" id="fileInput" accept="image/*" multiple hidden>
+      <div class="drop-hint">PNG · JPG · WEBP · MP4 · MOV · WEBM</div>
+      <input type="file" id="fileInput" accept="image/*,video/*" multiple hidden>
     </div>
     <div id="preview" class="img-preview">
       <div class="canvas-wrap">
         <canvas id="previewCanvas"></canvas>
         <canvas id="overlayCanvas"></canvas>
+        <video id="previewVideo" class="hidden" controls playsinline muted style="max-width:100%;max-height:380px;display:block;border:var(--border-w) solid var(--ink);box-shadow:var(--shadow-sm);background:#000"></video>
       </div>
       <div class="img-info">
         <span class="img-name" id="imgName"></span>
@@ -185,6 +190,7 @@ input[type=color]{width:36px;height:36px;border:var(--border-w) solid var(--ink)
       <div class="feat" data-id="watermark_remove"><div class="feat-icon">🩹</div><div class="feat-text"><div class="feat-name">워터마크 제거</div><div class="feat-desc">브러쉬로 칠해서 자동 제거</div></div></div>
       <div class="feat" data-id="bg_remove"><div class="feat-icon">✂️</div><div class="feat-text"><div class="feat-name">배경 제거 <span class="tag-ai">AI</span></div><div class="feat-desc">자동 분리 · 투명 PNG 출력</div></div></div>
       <div class="feat" data-id="person_remove"><div class="feat-icon">👤</div><div class="feat-text"><div class="feat-name">사람 제거 <span class="tag-ai">AI</span></div><div class="feat-desc">자동 마스크 + 배경 자동 채우기</div></div></div>
+      <div class="feat" data-id="video_watermark_remove"><div class="feat-icon">🎬</div><div class="feat-text"><div class="feat-name">영상 워터마크 제거 <span class="tag-ai">NEW</span></div><div class="feat-desc">드래그로 영역 선택 · 정적 워터마크</div></div></div>
     </div>
 
     <!-- Option panels -->
@@ -275,11 +281,31 @@ input[type=color]{width:36px;height:36px;border:var(--border-w) solid var(--ink)
       <button class="btn btn-go" data-run="person_remove">👁 사람 제거 미리보기</button>
     </div>
 
+    <div id="opt-video_watermark_remove" class="opt-panel">
+      <div class="opt-title">🎬 영상 워터마크 제거</div>
+      <div class="notice">💡 <strong>MP4/MOV/WEBM</strong> 영상 업로드 → 첫 프레임 위에서 <strong>드래그</strong>로 워터마크 사각형 지정. FFmpeg(~31MB)가 처음 한번만 로드됩니다.</div>
+      <div class="notice warn">⚠️ <strong>본인 영상 전용.</strong> 타인 저작물 로고 제거는 저작권 침해가 될 수 있습니다. 최대 60초 · 100MB 권장.</div>
+      <div class="form-row"><label class="form-label">품질</label><select class="form-input" id="vwr_crf"><option value="18">고화질 (CRF 18 · 큰 용량)</option><option value="23" selected>균형 (CRF 23)</option><option value="28">저화질 (CRF 28 · 작은 용량)</option></select></div>
+      <div class="form-row"><label class="form-label">프리셋</label><select class="form-input" id="vwr_preset"><option value="ultrafast">ultrafast (빠름)</option><option value="fast" selected>fast (균형)</option><option value="medium">medium</option></select></div>
+      <div id="vwr_rect_info" style="font-size:.78rem;color:var(--ink-2);font-family:var(--mono);margin:4px 0 10px;font-weight:600">선택된 영역: (없음)</div>
+      <button class="btn btn-sub" id="vwr_clear" type="button" style="width:100%;margin-bottom:8px">🗑 선택 영역 지우기</button>
+      <button class="btn btn-go" data-run="video_watermark_remove">🎬 영상 워터마크 제거 실행</button>
+    </div>
+
   </aside>
 </main>
 
 <footer class="footer">
+  <div class="sns-row">
+    <a href="https://www.instagram.com/commme210/" target="_blank" rel="noopener" aria-label="Instagram @commme210" title="Instagram @commme210">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+    </a>
+    <a href="https://www.threads.com/@commme210" target="_blank" rel="noopener" aria-label="Threads @commme210" title="Threads @commme210">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.35 18.44 1.5 15.586 1.472 12.01v-.017c.03-3.579.879-6.43 2.525-8.482C5.845 1.205 8.6.024 12.18 0h.014c2.746.02 5.043.725 6.826 2.098 1.677 1.29 2.858 3.13 3.509 5.467l-2.04.569c-1.104-3.96-3.898-5.984-8.304-6.015-2.91.022-5.11.936-6.54 2.717C4.307 6.504 3.616 8.914 3.589 12c.027 3.086.718 5.496 2.057 7.164 1.43 1.78 3.631 2.695 6.54 2.717 2.623-.02 4.358-.631 5.8-2.045 1.647-1.613 1.618-3.593 1.09-4.798-.31-.71-.873-1.3-1.634-1.75-.192 1.352-.622 2.446-1.284 3.272-.886 1.102-2.14 1.704-3.73 1.79-1.202.065-2.361-.218-3.259-.801-1.063-.689-1.685-1.74-1.752-2.964-.065-1.19.408-2.285 1.33-3.082.88-.76 2.119-1.207 3.583-1.291a13.853 13.853 0 0 1 3.02.142c-.126-.742-.375-1.332-.749-1.757-.513-.586-1.308-.883-2.359-.89h-.029c-.844 0-1.992.232-2.721 1.32L7.734 7.847c.98-1.454 2.568-2.256 4.478-2.256h.044c3.194.02 5.097 1.975 5.287 5.388.108.046.216.094.321.142 1.49.7 2.58 1.761 3.154 3.07.797 1.82.871 4.79-1.548 7.158-1.85 1.81-4.094 2.628-7.277 2.65Zm1.003-11.69c-.242 0-.487.007-.739.021-1.836.103-2.98.946-2.916 2.143.067 1.256 1.452 1.839 2.784 1.767 1.224-.065 2.818-.543 3.086-3.71a10.5 10.5 0 0 0-2.215-.221z"/></svg>
+    </a>
+  </div>
   <p><a href="https://github.com/commme/image-tools" target="_blank" rel="noopener">GitHub</a> · <a href="https://github.com/commme/image-tools/issues" target="_blank" rel="noopener">버그 제보</a> · MIT License</p>
+  <p>영상 처리: <a href="https://ffmpeg.org" target="_blank" rel="noopener">FFmpeg</a> (LGPL 2.1) via <a href="https://github.com/ffmpegwasm/ffmpeg.wasm" target="_blank" rel="noopener">ffmpeg.wasm</a></p>
   <p>© 2026 COMMME · Built with Claude Code</p>
 </footer>
 
@@ -287,6 +313,47 @@ input[type=color]{width:36px;height:36px;border:var(--border-w) solid var(--ink)
 
 <!-- JSZip CDN for split feature -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha512-XMVd28F1oH/O71fzwBnV7HucLxVwtxf26XV8P4wPk26EDxuGZ91N8bsOttmnomcCD3CS5ZMRL50H0GgOHvegtg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+<!-- COI Service Worker: enables SharedArrayBuffer on GitHub Pages (required for FFmpeg.wasm MT)
+     First visit registers SW + reloads once. Silent afterward. Used only by video watermark removal.
+     Vendored locally (SW requires same-origin script URL). -->
+<script src="coi-serviceworker.min.js"></script>
+
+<!-- FFmpeg.wasm lazy loader — only fetched when user runs video watermark removal (~31MB) -->
+<script type="module">
+  window.__loadFFmpeg = async (onProgress) => {
+    if (window.__ffmpegInstance) return window.__ffmpegInstance;
+    try {
+      const ffmpegMod = await import('./vendor/ffmpeg-esm/index.js');
+      const utilMod = await import('https://esm.sh/@ffmpeg/util@0.12.1');
+      const { FFmpeg } = ffmpegMod;
+      const { toBlobURL, fetchFile } = utilMod;
+      const ffmpeg = new FFmpeg();
+      if (onProgress) ffmpeg.on('progress', onProgress);
+      ffmpeg.on('log', ({ message }) => { if (window.__ffmpegLogCb) window.__ffmpegLogCb(message); });
+      // Try MT (SharedArrayBuffer) first, fallback to ST if not available
+      const mtBase = 'https://unpkg.com/@ffmpeg/core-mt@0.12.6/dist/esm';
+      const stBase = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm';
+      const hasSAB = typeof SharedArrayBuffer !== 'undefined' && self.crossOriginIsolated;
+      const base = hasSAB ? mtBase : stBase;
+      const loadOpts = {
+        coreURL: await toBlobURL(`${base}/ffmpeg-core.js`, 'text/javascript'),
+        wasmURL: await toBlobURL(`${base}/ffmpeg-core.wasm`, 'application/wasm'),
+      };
+      if (hasSAB) {
+        loadOpts.workerURL = await toBlobURL(`${base}/ffmpeg-core.worker.js`, 'text/javascript');
+      }
+      await ffmpeg.load(loadOpts);
+      window.__ffmpegInstance = ffmpeg;
+      window.__ffmpegFetchFile = fetchFile;
+      window.__ffmpegMT = hasSAB;
+      return ffmpeg;
+    } catch (e) {
+      console.error('[ffmpeg] load failed:', e);
+      throw e;
+    }
+  };
+</script>
 
 <!-- transformers.js + Xenova/modnet (HF CDN, reliable). Lazy load. -->
 <script type="module">
@@ -358,7 +425,12 @@ input[type=color]{width:36px;height:36px;border:var(--border-w) solid var(--ink)
   let currentFileSize = 0;
   let currentFeature = 'watermark';
 
-  // Rect selection (legacy, kept null)
+  // Video mode state (for 🎬 영상 워터마크 제거)
+  let currentVideoFile = null;  // File object (MP4/MOV/WEBM)
+  let currentVideoMeta = null;  // { width, height, duration }
+  let videoMode = false;        // true when a video is loaded
+
+  // Rect selection (revived for video watermark region)
   let selRect = null;
   let dragStart = null;
 
@@ -377,6 +449,7 @@ input[type=color]{width:36px;height:36px;border:var(--border-w) solid var(--ink)
   const previewBox = $('preview');
   const previewCanvas = $('previewCanvas');
   const overlay = $('overlayCanvas');
+  const previewVideo = $('previewVideo');
   const dropzone = $('dropzone');
   const fileInput = $('fileInput');
   const imgName = $('imgName');
@@ -415,7 +488,17 @@ input[type=color]{width:36px;height:36px;border:var(--border-w) solid var(--ink)
 
   // ---- File loader ----
   function loadFile(file){
-    if (!file || !file.type.startsWith('image/')) { notify('이미지 파일만 가능합니다.', true); return; }
+    if (!file) return;
+    if (file.type.startsWith('video/')) { loadVideoFile(file); return; }
+    if (!file.type.startsWith('image/')) { notify('이미지 또는 영상 파일만 가능합니다.', true); return; }
+    // Leaving video mode → restore image UI
+    videoMode = false;
+    currentVideoFile = null;
+    currentVideoMeta = null;
+    previewVideo.classList.add('hidden');
+    previewVideo.removeAttribute('src');
+    previewVideo.load?.();
+    previewCanvas.classList.remove('hidden');
     currentFileName = file.name;
     currentFileSize = file.size;
     const reader = new FileReader();
@@ -437,6 +520,51 @@ input[type=color]{width:36px;height:36px;border:var(--border-w) solid var(--ink)
       img.src = e.target.result;
     };
     reader.readAsDataURL(file);
+  }
+
+  // Video file loader — extracts first frame onto previewCanvas for rect drag
+  function loadVideoFile(file){
+    if (file.size > 250 * 1024 * 1024) { notify('영상이 너무 큽니다 (최대 250MB). 60초 이하 MP4 권장.', true); return; }
+    videoMode = true;
+    currentVideoFile = file;
+    currentFileName = file.name;
+    currentFileSize = file.size;
+    selRect = null;
+    wmDragXY = null;
+    txDragXY = null;
+    clearPendingResult();
+
+    const url = URL.createObjectURL(file);
+    previewVideo.src = url;
+    previewVideo.onloadedmetadata = () => {
+      currentVideoMeta = { width: previewVideo.videoWidth, height: previewVideo.videoHeight, duration: previewVideo.duration };
+      // Draw first frame into canvas so overlay rect-drag works at native resolution
+      previewVideo.currentTime = 0;
+    };
+    previewVideo.onseeked = () => {
+      if (!currentVideoMeta) return;
+      const W = currentVideoMeta.width, H = currentVideoMeta.height;
+      previewCanvas.width = W; previewCanvas.height = H;
+      try { previewCanvas.getContext('2d').drawImage(previewVideo, 0, 0, W, H); } catch(e) { console.warn('[video] poster draw:', e); }
+      overlay.width = W; overlay.height = H;
+      clearOverlay();
+      // Synthesize currentImage-like object for shared logic (width/height only)
+      currentImage = { width: W, height: H, _isVideoPoster: true };
+      previewVideo.onseeked = null;
+    };
+    previewVideo.onerror = () => notify('영상 로딩 실패 — MP4/MOV/WEBM 확인', true);
+
+    // Show canvas with first-frame poster for rect drag. Video element stays hidden until result is ready.
+    dropzone.classList.add('hidden');
+    previewBox.classList.add('show');
+    previewCanvas.classList.remove('hidden');
+    previewVideo.classList.add('hidden');
+    imgName.textContent = file.name;
+    imgSize.textContent = `영상 · ${(file.size/1024/1024).toFixed(1)}MB`;
+    // Auto-switch to video watermark remove feature
+    const vfeat = document.querySelector('.feat[data-id="video_watermark_remove"]');
+    if (vfeat) vfeat.click();
+    notify('영상 로드 완료 — 미리보기 위에서 드래그하여 워터마크 영역을 사각형으로 선택');
   }
   // Preview renders at FULL resolution in the canvas buffer; CSS max-width/max-height scales display.
   // Overlay buffer mirrors preview buffer so rect selection uses original-image coordinates directly.
@@ -464,12 +592,16 @@ input[type=color]{width:36px;height:36px;border:var(--border-w) solid var(--ink)
   // Drag & drop
   ['dragenter','dragover'].forEach(ev => dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.add('drag-over'); }));
   ['dragleave','drop'].forEach(ev => dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('drag-over'); }));
-  // Accept multi-file: 2+ images → auto-route to merge feature, populate mergeFiles
+  // Accept multi-file: 2+ images → auto-route to merge feature; single video → video mode
   function handleMultiFiles(files){
-    const list = Array.from(files).filter(f => f && f.type && f.type.startsWith('image/'));
-    if (!list.length) return;
+    const all = Array.from(files).filter(f => f && f.type && (f.type.startsWith('image/') || f.type.startsWith('video/')));
+    if (!all.length) return;
+    // Video takes priority: load first video encountered, ignore rest
+    const video = all.find(f => f.type.startsWith('video/'));
+    if (video) { loadFile(video); return; }
+    const list = all.filter(f => f.type.startsWith('image/'));
     if (list.length === 1) { loadFile(list[0]); return; }
-    // Multi-file path: load first as preview + push all to merge accumulator
+    // Multi-image path: load first as preview + push all to merge accumulator
     loadFile(list[0]);
     mergeFiles = mergeFiles.concat(list);
     renderMergeThumbs();
@@ -496,7 +628,25 @@ input[type=color]{width:36px;height:36px;border:var(--border-w) solid var(--ink)
     notify('다운로드 시작');
   });
   $('revertBtn').addEventListener('click', () => {
-    if (currentImage) drawPreview(currentImage);
+    if (videoMode && currentVideoFile) {
+      // Revert to poster-frame view for another selection pass
+      const url = URL.createObjectURL(currentVideoFile);
+      previewVideo.src = url;
+      previewVideo.onloadedmetadata = () => { previewVideo.currentTime = 0; };
+      previewVideo.onseeked = () => {
+        const W = currentVideoMeta.width, H = currentVideoMeta.height;
+        previewCanvas.width = W; previewCanvas.height = H;
+        try { previewCanvas.getContext('2d').drawImage(previewVideo, 0, 0, W, H); } catch(_) {}
+        overlay.width = W; overlay.height = H;
+        clearOverlay();
+        previewVideo.onseeked = null;
+      };
+      previewVideo.classList.add('hidden');
+      previewCanvas.classList.remove('hidden');
+      overlay.classList.add('active');
+    } else if (currentImage && !currentImage._isVideoPoster) {
+      drawPreview(currentImage);
+    }
     clearPendingResult();
   });
 
@@ -566,6 +716,10 @@ input[type=color]{width:36px;height:36px;border:var(--border-w) solid var(--ink)
       if (yRange) { yRange.value = Math.round(p.y / overlay.height * 100); yRange.dispatchEvent(new Event('input')); }
       dragStart = p;
       liveRenderText();
+    } else if (currentFeature === 'video_watermark_remove') {
+      dragStart = p;
+      selRect = { x: p.x, y: p.y, w: 0, h: 0 };
+      drawSelOverlay();
     }
   });
   overlay.addEventListener('mousemove', e => {
@@ -582,10 +736,23 @@ input[type=color]{width:36px;height:36px;border:var(--border-w) solid var(--ink)
       if (xRange) { xRange.value = Math.round(p.x / overlay.width * 100); xRange.dispatchEvent(new Event('input')); }
       if (yRange) { yRange.value = Math.round(p.y / overlay.height * 100); yRange.dispatchEvent(new Event('input')); }
       liveRenderText();
+    } else if (currentFeature === 'video_watermark_remove') {
+      const x = Math.min(dragStart.x, p.x), y = Math.min(dragStart.y, p.y);
+      const w = Math.abs(p.x - dragStart.x), h = Math.abs(p.y - dragStart.y);
+      selRect = { x, y, w, h };
+      drawSelOverlay();
+      updateVwrRectInfo();
     }
   });
   overlay.addEventListener('mouseup', () => { dragStart = null; });
   overlay.addEventListener('mouseleave', () => { dragStart = null; });
+
+  function updateVwrRectInfo(){
+    const info = $('vwr_rect_info'); if (!info) return;
+    if (!selRect || selRect.w < 4 || selRect.h < 4) { info.textContent = '선택된 영역: (없음)'; return; }
+    info.textContent = `선택된 영역: ${Math.round(selRect.x)},${Math.round(selRect.y)} · ${Math.round(selRect.w)}×${Math.round(selRect.h)}`;
+  }
+  $('vwr_clear')?.addEventListener('click', () => { selRect = null; clearOverlay(); updateVwrRectInfo(); });
 
   // Live overlay preview for watermark (ghost text at current position)
   function drawWmPreview(){
@@ -658,6 +825,12 @@ input[type=color]{width:36px;height:36px;border:var(--border-w) solid var(--ink)
       overlay.classList.add('active');
       overlay.classList.add('move-mode');
       clearOverlay();
+    } else if (id === 'video_watermark_remove') {
+      overlay.classList.add('active');
+      overlay.classList.remove('move-mode');
+      clearOverlay();
+      if (selRect) drawSelOverlay();
+      updateVwrRectInfo();
     } else {
       overlay.classList.remove('active');
       overlay.classList.remove('move-mode');
@@ -747,7 +920,17 @@ input[type=color]{width:36px;height:36px;border:var(--border-w) solid var(--ink)
   document.body.addEventListener('click', async e => {
     const btn = e.target.closest('[data-run]'); if (!btn) return;
     const action = btn.dataset.run;
-    if (!currentImage && action !== 'merge') { notify('먼저 이미지를 올려주세요.', true); return; }
+    if (!currentImage && action !== 'merge') { notify('먼저 파일을 올려주세요.', true); return; }
+    // Guard: image features require image (not video poster)
+    const imageOnly = ['watermark','split','text','upscale','watermark_remove','bg_remove','person_remove'];
+    if (videoMode && imageOnly.includes(action)) {
+      notify('이미지 기능입니다. 영상 모드에서는 🎬 영상 워터마크 제거만 사용 가능합니다.', true);
+      return;
+    }
+    if (!videoMode && action === 'video_watermark_remove') {
+      notify('영상(MP4/MOV/WEBM)을 먼저 업로드해주세요.', true);
+      return;
+    }
     try {
       if (action === 'watermark') runWatermark();
       else if (action === 'split') await runSplit();
@@ -757,6 +940,7 @@ input[type=color]{width:36px;height:36px;border:var(--border-w) solid var(--ink)
       else if (action === 'watermark_remove') await runWatermarkRemove();
       else if (action === 'bg_remove') await runBgRemove();
       else if (action === 'person_remove') await runPersonRemove();
+      else if (action === 'video_watermark_remove') await runVideoWatermarkRemove();
     } catch(err) {
       console.error(err);
       hideLoader();
@@ -1238,6 +1422,137 @@ input[type=color]{width:36px;height:36px;border:var(--border-w) solid var(--ink)
       hideLoader();
       console.error('[person_remove] run failed:', e);
       notify('사람 제거 실패: ' + (e.message || e), true);
+    }
+  }
+
+  // ---- Video Watermark Removal (FFmpeg.wasm delogo filter) ----
+  async function runVideoWatermarkRemove(){
+    if (!currentVideoFile) { notify('영상 파일을 먼저 업로드해주세요.', true); return; }
+    if (!selRect || selRect.w < 4 || selRect.h < 4) {
+      notify('미리보기에서 드래그로 워터마크 영역을 선택해주세요.', true);
+      return;
+    }
+    const W = currentVideoMeta.width, H = currentVideoMeta.height;
+    // Clamp rect to even pixel coords (libx264/delogo prefers even values)
+    let rx = Math.max(0, Math.round(selRect.x));
+    let ry = Math.max(0, Math.round(selRect.y));
+    let rw = Math.min(W - rx, Math.round(selRect.w));
+    let rh = Math.min(H - ry, Math.round(selRect.h));
+    // delogo requires x+w < W and y+h < H strictly (at least 1px margin). Nudge in if needed.
+    if (rx + rw >= W) rw = W - rx - 1;
+    if (ry + rh >= H) rh = H - ry - 1;
+    if (rw < 4 || rh < 4) { notify('선택 영역이 너무 작습니다.', true); return; }
+    // Make even
+    rx = rx & ~1; ry = ry & ~1; rw = rw & ~1; rh = rh & ~1;
+
+    showLoader('FFmpeg 준비 중...', '첫 실행 시 ~31MB 로드. 이후 캐시 사용.');
+    let ffmpeg;
+    // Log-based progress tracking (ST mode fallback — progress event is unreliable in ST)
+    const videoDurSec = Math.max(0.1, Number(currentVideoMeta?.duration) || 0);
+    const parseTime = (s) => {
+      // matches "time=00:00:01.23" or "time=1.23"
+      const m1 = s.match(/time=(\d+):(\d+):(\d+(?:\.\d+)?)/);
+      if (m1) return (+m1[1])*3600 + (+m1[2])*60 + parseFloat(m1[3]);
+      const m2 = s.match(/time=(\d+(?:\.\d+)?)/);
+      return m2 ? parseFloat(m2[1]) : NaN;
+    };
+    let lastLogT = 0;
+    window.__ffmpegLogCb = (msg) => {
+      if (!msg || typeof msg !== 'string') return;
+      if (!msg.includes('time=')) return;
+      const t = parseTime(msg);
+      if (!isFinite(t)) return;
+      lastLogT = t;
+      if (videoDurSec > 0.1) {
+        const pct = Math.max(0, Math.min(99, Math.round(t / videoDurSec * 100)));
+        showLoader('영상 처리 중...', `진행률 ${pct}% · ${t.toFixed(1)}s / ${videoDurSec.toFixed(1)}s`);
+      } else {
+        showLoader('영상 처리 중...', `처리 시간 ${t.toFixed(1)}s`);
+      }
+    };
+    try {
+      ffmpeg = await window.__loadFFmpeg(({ progress, time }) => {
+        // MT mode progress — only fires reliably when SharedArrayBuffer is available
+        if (typeof progress === 'number' && progress > 0) {
+          const pct = Math.max(0, Math.min(99, Math.round(progress * 100)));
+          showLoader('영상 처리 중...', `진행률 ${pct}%`);
+        }
+      });
+    } catch (e) {
+      hideLoader();
+      window.__ffmpegLogCb = null;
+      console.error('[video_wm] ffmpeg load failed:', e);
+      notify('FFmpeg 로드 실패 — 네트워크/캐시 확인 후 새로고침.', true);
+      return;
+    }
+
+    try {
+      showLoader('영상 처리 중...', '파일 로드 중...');
+      const fetchFile = window.__ffmpegFetchFile;
+      const ext = (currentVideoFile.name.split('.').pop() || 'mp4').toLowerCase();
+      const inputName = `in.${ext}`;
+      const outputName = 'out.mp4';
+      await ffmpeg.writeFile(inputName, await fetchFile(currentVideoFile));
+
+      const crf = $('vwr_crf')?.value || '23';
+      const preset = $('vwr_preset')?.value || 'fast';
+      // delogo filter masks the region with estimated surroundings (simple, fast, no audio issues)
+      const vf = `delogo=x=${rx}:y=${ry}:w=${rw}:h=${rh}:show=0`;
+      showLoader('영상 처리 중...', `FFmpeg 실행 중... (총 ${videoDurSec.toFixed(1)}s 영상)`);
+      const args = [
+        '-i', inputName,
+        '-vf', vf,
+        '-c:v', 'libx264',
+        '-preset', preset,
+        '-crf', crf,
+        '-c:a', 'copy',
+        '-movflags', '+faststart',
+        '-y', outputName
+      ];
+      const code = await ffmpeg.exec(args);
+      if (code !== 0) {
+        // Retry without audio copy (some inputs use unsupported codecs)
+        console.warn('[video_wm] retry without -c:a copy');
+        showLoader('영상 처리 중...', '오디오 재인코딩 재시도...');
+        const retryArgs = [
+          '-i', inputName,
+          '-vf', vf,
+          '-c:v', 'libx264',
+          '-preset', preset,
+          '-crf', crf,
+          '-c:a', 'aac',
+          '-b:a', '128k',
+          '-movflags', '+faststart',
+          '-y', outputName
+        ];
+        const code2 = await ffmpeg.exec(retryArgs);
+        if (code2 !== 0) throw new Error(`FFmpeg exit code ${code2}`);
+      }
+
+      const data = await ffmpeg.readFile(outputName);
+      const blob = new Blob([data.buffer], { type: 'video/mp4' });
+      setPendingBlob(blob, `${baseName()}_watermark_removed.mp4`);
+
+      // Swap: hide canvas/overlay, show video with processed result
+      const url = URL.createObjectURL(blob);
+      previewVideo.src = url;
+      previewVideo.load();
+      previewVideo.classList.remove('hidden');
+      previewCanvas.classList.add('hidden');
+      overlay.classList.remove('active');
+      clearOverlay();
+      previewVideo.play?.().catch(()=>{});
+      // Cleanup FFmpeg FS
+      try { await ffmpeg.deleteFile(inputName); await ffmpeg.deleteFile(outputName); } catch(_) {}
+
+      hideLoader();
+      notify('영상 워터마크 제거 완료 — 미리보기 확인 후 다운로드');
+    } catch (e) {
+      hideLoader();
+      console.error('[video_wm] run failed:', e);
+      notify('영상 처리 실패: ' + (e.message || e), true);
+    } finally {
+      window.__ffmpegLogCb = null;
     }
   }
 

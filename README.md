@@ -160,5 +160,7 @@ MIT License — © 2026 COMMME. All rights reserved.
 | [opencv-python-headless](https://opencv.org/) | Apache-2.0 | 워터마크/사람 제거 inpainting |
 | [transformers.js](https://github.com/huggingface/transformers.js) | Apache-2.0 | 브라우저 ONNX 추론 |
 | [briaai/RMBG-1.4](https://huggingface.co/briaai/RMBG-1.4) | Bria RAIL-M (비상업 가중치) | 배경 제거 AI 모델 |
+| [FFmpeg](https://ffmpeg.org) (via [ffmpeg.wasm](https://github.com/ffmpegwasm/ffmpeg.wasm)) | LGPL 2.1 | 영상 워터마크 제거 (delogo 필터) |
+| [coi-serviceworker](https://github.com/gzuidhof/coi-serviceworker) | MIT | COOP/COEP SW (SharedArrayBuffer 지원) |
 
 > 이 프로젝트는 Claude Code (Anthropic)의 도움으로 제작되었습니다.
