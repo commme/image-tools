@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://unpkg.com https://docs.opencv.org; worker-src 'self' blob:; connect-src 'self' blob: https://esm.sh https://unpkg.com https://cdn.jsdelivr.net https://cdn-lfs.huggingface.co https://huggingface.co https://*.huggingface.co https://cdnjs.cloudflare.com https://docs.opencv.org; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' blob:; base-uri 'self'; form-action 'self';">
 <title>Image Tools — 브라우저에서 바로 (이미지 8종 + 영상 워터마크 제거)</title>
 <meta name="description" content="설치 없이 브라우저에서 워터마크·분할·합치기·텍스트·업스케일·배경제거·사람제거·워터마크제거 + 영상 워터마크 제거. 파일 업로드 없이 본인 PC에서만 처리됩니다.">
 <meta property="og:title" content="Image Tools — 브라우저에서 이미지 편집 + 영상 워터마크 제거">
@@ -283,13 +284,15 @@ input[type=color]{width:36px;height:36px;border:var(--border-w) solid var(--ink)
 
     <div id="opt-video_watermark_remove" class="opt-panel">
       <div class="opt-title">🎬 영상 워터마크 제거</div>
-      <div class="notice">💡 <strong>MP4/MOV/WEBM</strong> 영상 업로드 → 첫 프레임 위에서 <strong>드래그</strong>로 워터마크 사각형 지정. FFmpeg(~31MB)가 처음 한번만 로드됩니다.</div>
-      <div class="notice warn">⚠️ <strong>본인 영상 전용.</strong> 타인 저작물 로고 제거는 저작권 침해가 될 수 있습니다. 최대 60초 · 100MB 권장.</div>
-      <div class="form-row"><label class="form-label">품질</label><select class="form-input" id="vwr_crf"><option value="18">고화질 (CRF 18 · 큰 용량)</option><option value="23" selected>균형 (CRF 23)</option><option value="28">저화질 (CRF 28 · 작은 용량)</option></select></div>
-      <div class="form-row"><label class="form-label">프리셋</label><select class="form-input" id="vwr_preset"><option value="ultrafast">ultrafast (빠름)</option><option value="fast" selected>fast (균형)</option><option value="medium">medium</option></select></div>
+      <div class="notice">💡 <strong>MP4/MOV/WEBM</strong> 8~10초 영상 → 영역 선택 → 모드 4개 중 선택.</div>
+      <div class="notice warn">📌 <strong>정밀 = 자연스럽게 지움</strong> (배경 자동 복원) · <strong>가리기 = 확실히 덮음</strong> (단순 마스킹)</div>
+      <button class="btn btn-sub" id="vwr_preset_br" type="button" style="width:100%;margin-bottom:8px;background:#FEE500;border-color:var(--ink);font-weight:700">🎯 우측 하단 자동 선택 (Veo · Nano Banana)</button>
+      <div class="form-row"><label class="form-label">처리 방식</label><select class="form-input" id="vwr_mask"><optgroup label="✨ 정밀 (자연스럽게 지움)"><option value="temporal_motion" selected>빠름 ⭐ 추천</option><option value="temporal_opencv">정확 (5MB 다운로드)</option></optgroup><optgroup label="⬛ 가리기 (확실히 덮음)"><option value="blur">흐림</option><option value="mosaic">모자이크</option></optgroup></select></div>
+      <div class="form-row"><label class="form-label">강도</label><select class="form-input" id="vwr_strength"><option value="weak">약함</option><option value="medium" selected>중간 ⭐</option><option value="strong">강함</option></select></div>
+      <div id="vwr_engine_badge" style="font-size:.72rem;font-family:var(--mono);font-weight:700;padding:6px 8px;margin:6px 0;border:2px solid var(--ink);background:#b6ff3d">⚡ 네이티브 인코더 (브라우저 HW 가속)</div>
       <div id="vwr_rect_info" style="font-size:.78rem;color:var(--ink-2);font-family:var(--mono);margin:4px 0 10px;font-weight:600">선택된 영역: (없음)</div>
       <button class="btn btn-sub" id="vwr_clear" type="button" style="width:100%;margin-bottom:8px">🗑 선택 영역 지우기</button>
-      <button class="btn btn-go" data-run="video_watermark_remove">🎬 영상 워터마크 제거 실행</button>
+      <button class="btn btn-go" data-run="video_watermark_remove">🎬 워터마크 처리 실행</button>
     </div>
 
   </aside>
@@ -305,7 +308,7 @@ input[type=color]{width:36px;height:36px;border:var(--border-w) solid var(--ink)
     </a>
   </div>
   <p><a href="https://github.com/commme/image-tools" target="_blank" rel="noopener">GitHub</a> · <a href="https://github.com/commme/image-tools/issues" target="_blank" rel="noopener">버그 제보</a> · MIT License</p>
-  <p>영상 처리: <a href="https://ffmpeg.org" target="_blank" rel="noopener">FFmpeg</a> (LGPL 2.1) via <a href="https://github.com/ffmpegwasm/ffmpeg.wasm" target="_blank" rel="noopener">ffmpeg.wasm</a></p>
+  <p>영상 처리: 브라우저 네이티브 <a href="https://developer.mozilla.org/docs/Web/API/MediaRecorder" target="_blank" rel="noopener">MediaRecorder</a> + <a href="https://developer.mozilla.org/docs/Web/API/Canvas_API" target="_blank" rel="noopener">Canvas 2D</a></p>
   <p>© 2026 COMMME · Built with Claude Code</p>
 </footer>
 
@@ -330,7 +333,15 @@ input[type=color]{width:36px;height:36px;border:var(--border-w) solid var(--ink)
       const { toBlobURL, fetchFile } = utilMod;
       const ffmpeg = new FFmpeg();
       if (onProgress) ffmpeg.on('progress', onProgress);
-      ffmpeg.on('log', ({ message }) => { if (window.__ffmpegLogCb) window.__ffmpegLogCb(message); });
+      ffmpeg.on('log', ({ message }) => {
+        // Always echo to console so we can see FFmpeg progress in DevTools
+        if (typeof message === 'string' && message.length) console.log('[ffmpeg]', message);
+        if (window.__ffmpegLogCb) window.__ffmpegLogCb(message);
+      });
+      ffmpeg.on('progress', ({ progress, time }) => {
+        // Universal progress hook — fires in both MT and ST modes (newer ffmpeg.wasm)
+        if (window.__ffmpegProgressCb) window.__ffmpegProgressCb({ progress, time });
+      });
       // Try MT (SharedArrayBuffer) first, fallback to ST if not available
       const mtBase = 'https://unpkg.com/@ffmpeg/core-mt@0.12.6/dist/esm';
       const stBase = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm';
@@ -353,6 +364,7 @@ input[type=color]{width:36px;height:36px;border:var(--border-w) solid var(--ink)
       throw e;
     }
   };
+  // v4: FFmpeg.wasm is no longer used for video watermark. Loader kept as dead code (lazy-loaded).
 </script>
 
 <!-- transformers.js + Xenova/modnet (HF CDN, reliable). Lazy load. -->
@@ -753,6 +765,19 @@ input[type=color]{width:36px;height:36px;border:var(--border-w) solid var(--ink)
     info.textContent = `선택된 영역: ${Math.round(selRect.x)},${Math.round(selRect.y)} · ${Math.round(selRect.w)}×${Math.round(selRect.h)}`;
   }
   $('vwr_clear')?.addEventListener('click', () => { selRect = null; clearOverlay(); updateVwrRectInfo(); });
+  // v4: 우측 하단 자동 선택 (Veo / Nano Banana / 일반 AI 워터마크 프리셋)
+  $('vwr_preset_br')?.addEventListener('click', () => {
+    if (!currentVideoMeta) { notify('영상을 먼저 업로드해주세요.', true); return; }
+    const W = currentVideoMeta.width, H = currentVideoMeta.height;
+    // Veo/Nano Banana 우측 하단 워터마크 프리셋: 너비 ~18% × 높이 ~10%, 여백 ~2.5%
+    const rectW = Math.max(40, Math.round(W * 0.18));
+    const rectH = Math.max(20, Math.round(H * 0.10));
+    const margin = Math.max(8, Math.round(W * 0.025));
+    selRect = { x: W - rectW - margin, y: H - rectH - margin, w: rectW, h: rectH };
+    drawSelOverlay();
+    updateVwrRectInfo();
+    notify('우측 하단 영역 자동 선택 — 필요 시 드래그로 미세 조정 가능');
+  });
 
   // Live overlay preview for watermark (ghost text at current position)
   function drawWmPreview(){
@@ -1425,115 +1450,855 @@ input[type=color]{width:36px;height:36px;border:var(--border-w) solid var(--ink)
     }
   }
 
-  // ---- Video Watermark Removal (FFmpeg.wasm delogo filter) ----
+  // ---- Video Watermark Removal ----
+  // v4 영상 워터마크 제거 — Canvas + MediaRecorder (브라우저 네이티브 HW 가속)
+  // FFmpeg.wasm은 폐기. 처리 시간 = 영상 재생 시간. 인코딩 행 0%.
+
+  // ─── E: OpenCV.js 지연 로딩 (5MB · CDN 한 번만 fetch · Apache 2.0) ───
+  // ⚠️ 함수 스코프에 const cv = canvas 가 있어 cv 가 가려지므로 항상 window.cv 사용
+  let _opencvLoadPromise = null;
+  function loadOpenCV(){
+    if (typeof window.cv !== 'undefined' && window.cv.Mat && window.cv.calcOpticalFlowFarneback) return Promise.resolve(true);
+    if (_opencvLoadPromise) return _opencvLoadPromise;
+    _opencvLoadPromise = new Promise((resolve, reject) => {
+      if (document.querySelector('script[data-opencv-loader]')) {
+        const tick = () => {
+          if (typeof window.cv !== 'undefined' && window.cv.Mat && window.cv.calcOpticalFlowFarneback) resolve(true);
+          else setTimeout(tick, 100);
+        };
+        tick();
+        return;
+      }
+      const s = document.createElement('script');
+      s.src = 'https://docs.opencv.org/4.10.0/opencv.js';
+      s.async = true;
+      s.dataset.opencvLoader = '1';
+      s.onload = () => {
+        const tick = () => {
+          if (typeof window.cv !== 'undefined' && window.cv.Mat && window.cv.calcOpticalFlowFarneback) {
+            resolve(true);
+          } else if (typeof window.cv === 'object' && window.cv && 'onRuntimeInitialized' in window.cv) {
+            window.cv['onRuntimeInitialized'] = () => resolve(true);
+          } else {
+            setTimeout(tick, 100);
+          }
+        };
+        tick();
+      };
+      s.onerror = () => reject(new Error('OpenCV.js CDN 로드 실패'));
+      document.head.appendChild(s);
+    });
+    return _opencvLoadPromise;
+  }
+
   async function runVideoWatermarkRemove(){
     if (!currentVideoFile) { notify('영상 파일을 먼저 업로드해주세요.', true); return; }
+    if (!currentVideoMeta) { notify('영상 메타데이터 로드 대기 중 — 잠시 후 다시 시도해주세요.', true); return; }
     if (!selRect || selRect.w < 4 || selRect.h < 4) {
-      notify('미리보기에서 드래그로 워터마크 영역을 선택해주세요.', true);
+      notify('영역을 선택해주세요. "🎯 우측 하단 자동" 버튼이 가장 간편합니다.', true);
       return;
     }
+    // 1) MediaRecorder 지원 포맷 자동 탐지 (mp4 우선, webm fallback)
+    const candidates = [
+      { mime: 'video/mp4;codecs=avc1.42E01E,mp4a.40.2', ext: 'mp4' },
+      { mime: 'video/mp4;codecs=avc1.42E01E', ext: 'mp4' },
+      { mime: 'video/mp4', ext: 'mp4' },
+      { mime: 'video/webm;codecs=vp9,opus', ext: 'webm' },
+      { mime: 'video/webm;codecs=vp8,opus', ext: 'webm' },
+      { mime: 'video/webm', ext: 'webm' }
+    ];
+    let fmt = null;
+    if (typeof MediaRecorder === 'undefined') {
+      notify('이 브라우저는 MediaRecorder를 지원하지 않습니다.', true); return;
+    }
+    for (const c of candidates) {
+      try { if (MediaRecorder.isTypeSupported(c.mime)) { fmt = c; break; } } catch(_) {}
+    }
+    if (!fmt) { notify('지원되는 영상 코덱이 없습니다.', true); return; }
+    console.log('[video_wm v4] format:', fmt.mime);
+
+    // 가림 방식 + 강도 (Canvas 2D 네이티브 — wasm 행 위험 0)
+    const maskMode = document.getElementById('vwr_mask')?.value || 'temporal_motion';
+    const strength = document.getElementById('vwr_strength')?.value || 'medium';
+    const blurPxMap = { weak: 8, medium: 18, strong: 32 };
+    const mosaicPxMap = { weak: 6, medium: 12, strong: 22 };
+    const blurPx = blurPxMap[strength] || 18;
+    const mosaicPx = mosaicPxMap[strength] || 12;
+    console.log('[video_wm v4] mask=', maskMode, 'strength=', strength, 'blurPx=', blurPx, 'mosaicPx=', mosaicPx);
+
+    showLoader('영상 처리 준비 중...', '브라우저 네이티브 인코더 사용');
+
+    // 클램핑 (정수, 영상 경계 안)
     const W = currentVideoMeta.width, H = currentVideoMeta.height;
-    // Clamp rect to even pixel coords (libx264/delogo prefers even values)
-    let rx = Math.max(0, Math.round(selRect.x));
-    let ry = Math.max(0, Math.round(selRect.y));
-    let rw = Math.min(W - rx, Math.round(selRect.w));
-    let rh = Math.min(H - ry, Math.round(selRect.h));
-    // delogo requires x+w < W and y+h < H strictly (at least 1px margin). Nudge in if needed.
-    if (rx + rw >= W) rw = W - rx - 1;
-    if (ry + rh >= H) rh = H - ry - 1;
-    if (rw < 4 || rh < 4) { notify('선택 영역이 너무 작습니다.', true); return; }
-    // Make even
-    rx = rx & ~1; ry = ry & ~1; rw = rw & ~1; rh = rh & ~1;
+    const rx = Math.max(0, Math.min(W - 1, Math.round(selRect.x)));
+    const ry = Math.max(0, Math.min(H - 1, Math.round(selRect.y)));
+    const rw = Math.max(1, Math.min(W - rx, Math.round(selRect.w)));
+    const rh = Math.max(1, Math.min(H - ry, Math.round(selRect.h)));
 
-    showLoader('FFmpeg 준비 중...', '첫 실행 시 ~31MB 로드. 이후 캐시 사용.');
-    let ffmpeg;
-    // Log-based progress tracking (ST mode fallback — progress event is unreliable in ST)
-    const videoDurSec = Math.max(0.1, Number(currentVideoMeta?.duration) || 0);
-    const parseTime = (s) => {
-      // matches "time=00:00:01.23" or "time=1.23"
-      const m1 = s.match(/time=(\d+):(\d+):(\d+(?:\.\d+)?)/);
-      if (m1) return (+m1[1])*3600 + (+m1[2])*60 + parseFloat(m1[3]);
-      const m2 = s.match(/time=(\d+(?:\.\d+)?)/);
-      return m2 ? parseFloat(m2[1]) : NaN;
+    // 2) 숨겨진 video 엘리먼트로 디코딩 (HW 가속)
+    const sourceVideo = document.createElement('video');
+    sourceVideo.muted = false;
+    sourceVideo.playsInline = true;
+    sourceVideo.preload = 'auto';
+    const sourceUrl = URL.createObjectURL(currentVideoFile);
+    sourceVideo.src = sourceUrl;
+
+    let recorder = null;
+    let rafId = 0;
+    let stopped = false;
+    let cleanedUp = false;
+    const cleanup = () => {
+      if (cleanedUp) return; cleanedUp = true;
+      if (rafId) cancelAnimationFrame(rafId);
+      try { recorder && recorder.state !== 'inactive' && recorder.stop(); } catch(_) {}
+      try { sourceVideo.pause(); sourceVideo.src = ''; sourceVideo.load(); } catch(_) {}
+      URL.revokeObjectURL(sourceUrl);
     };
-    let lastLogT = 0;
-    window.__ffmpegLogCb = (msg) => {
-      if (!msg || typeof msg !== 'string') return;
-      if (!msg.includes('time=')) return;
-      const t = parseTime(msg);
-      if (!isFinite(t)) return;
-      lastLogT = t;
-      if (videoDurSec > 0.1) {
-        const pct = Math.max(0, Math.min(99, Math.round(t / videoDurSec * 100)));
-        showLoader('영상 처리 중...', `진행률 ${pct}% · ${t.toFixed(1)}s / ${videoDurSec.toFixed(1)}s`);
-      } else {
-        showLoader('영상 처리 중...', `처리 시간 ${t.toFixed(1)}s`);
-      }
-    };
+
     try {
-      ffmpeg = await window.__loadFFmpeg(({ progress, time }) => {
-        // MT mode progress — only fires reliably when SharedArrayBuffer is available
-        if (typeof progress === 'number' && progress > 0) {
-          const pct = Math.max(0, Math.min(99, Math.round(progress * 100)));
-          showLoader('영상 처리 중...', `진행률 ${pct}%`);
-        }
+      await new Promise((res, rej) => {
+        sourceVideo.onloadedmetadata = res;
+        sourceVideo.onerror = () => rej(new Error('영상 로드 실패'));
+        setTimeout(() => rej(new Error('영상 로드 타임아웃 (10초)')), 10000);
       });
-    } catch (e) {
-      hideLoader();
-      window.__ffmpegLogCb = null;
-      console.error('[video_wm] ffmpeg load failed:', e);
-      notify('FFmpeg 로드 실패 — 네트워크/캐시 확인 후 새로고침.', true);
-      return;
-    }
 
-    try {
-      showLoader('영상 처리 중...', '파일 로드 중...');
-      const fetchFile = window.__ffmpegFetchFile;
-      const ext = (currentVideoFile.name.split('.').pop() || 'mp4').toLowerCase();
-      const inputName = `in.${ext}`;
-      const outputName = 'out.mp4';
-      await ffmpeg.writeFile(inputName, await fetchFile(currentVideoFile));
+      const dur = isFinite(sourceVideo.duration) && sourceVideo.duration > 0 ? sourceVideo.duration : 10;
 
-      const crf = $('vwr_crf')?.value || '23';
-      const preset = $('vwr_preset')?.value || 'fast';
-      // delogo filter masks the region with estimated surroundings (simple, fast, no audio issues)
-      const vf = `delogo=x=${rx}:y=${ry}:w=${rw}:h=${rh}:show=0`;
-      showLoader('영상 처리 중...', `FFmpeg 실행 중... (총 ${videoDurSec.toFixed(1)}s 영상)`);
-      const args = [
-        '-i', inputName,
-        '-vf', vf,
-        '-c:v', 'libx264',
-        '-preset', preset,
-        '-crf', crf,
-        '-c:a', 'copy',
-        '-movflags', '+faststart',
-        '-y', outputName
-      ];
-      const code = await ffmpeg.exec(args);
-      if (code !== 0) {
-        // Retry without audio copy (some inputs use unsupported codecs)
-        console.warn('[video_wm] retry without -c:a copy');
-        showLoader('영상 처리 중...', '오디오 재인코딩 재시도...');
-        const retryArgs = [
-          '-i', inputName,
-          '-vf', vf,
-          '-c:v', 'libx264',
-          '-preset', preset,
-          '-crf', crf,
-          '-c:a', 'aac',
-          '-b:a', '128k',
-          '-movflags', '+faststart',
-          '-y', outputName
-        ];
-        const code2 = await ffmpeg.exec(retryArgs);
-        if (code2 !== 0) throw new Error(`FFmpeg exit code ${code2}`);
+      // 3) Canvas 준비 (네이티브 해상도)
+      const cv = document.createElement('canvas');
+      cv.width = W; cv.height = H;
+      const ctx = cv.getContext('2d', { alpha: false, desynchronized: true });
+
+      // 마스킹용 임시 캔버스 — 매 프레임 재사용 (성능)
+      let maskCanvas = null, maskCtx = null;
+      let mosaicCanvas = null, mosaicCtx = null;
+      let bgCanvases = null;  // temporal: 시간 슬롯별 학습된 배경 rect (sliding window median)
+      if (maskMode === 'blur') {
+        maskCanvas = document.createElement('canvas');
+        maskCanvas.width = rw; maskCanvas.height = rh;
+        maskCtx = maskCanvas.getContext('2d', { alpha: false });
+      } else if (maskMode === 'mosaic') {
+        mosaicCanvas = document.createElement('canvas');
+        // 다운샘플 크기 = rect / mosaicPx (최소 2px)
+        mosaicCanvas.width = Math.max(2, Math.round(rw / mosaicPx));
+        mosaicCanvas.height = Math.max(2, Math.round(rh / mosaicPx));
+        mosaicCtx = mosaicCanvas.getContext('2d', { alpha: false });
+        mosaicCtx.imageSmoothingEnabled = false;
+      } else if (maskMode === 'temporal' || maskMode === 'temporal_motion' || maskMode === 'temporal_opencv') {
+        // ───── L2+ Sliding Window Mode Inpainting (A+B+C, 모션 모드는 +D 또는 +E) ─────
+        // A: Sliding Window Mode-based 픽셀 선택 (8단계 양자화 → 최빈 버킷 → 원본 평균)
+        // B: 좁은 윈도우 (±3슬롯 ≈ ±0.6s) — 다른 콘텐츠 평균 방지
+        // C: 슬롯 간 alpha blend (draw 단계, 부드러운 시간 전환)
+        // D: 블록 매칭 SSD (temporal_motion · 외부 의존성 0 · 빠름)
+        //   → consecutive delta + median filter + SSD 신뢰도 체크 (누적 오차 방지)
+        // E: OpenCV.js Farneback dense optical flow (temporal_opencv · 5MB CDN · 정밀)
+        //   → 픽셀 단위 광학흐름으로 sub-pixel 정확도 글로벌 모션 추정
+        //   → 로딩/실행 실패 시 D 폴백 → 정적 모드 폴백 (3중 안전망)
+        const useMotion = (maskMode === 'temporal_motion' || maskMode === 'temporal_opencv');
+        const useOpenCV = (maskMode === 'temporal_opencv');
+        const SAMPLE_COUNT = Math.min(40, Math.max(16, Math.round(dur * 5)));
+        // 정적 모드 — 좁은 윈도우(±0.6s)로 로컬 콘텐츠 적응
+        // 모션 모드 — full-range 풀로 변경 (Pass 1.5에서 lo=0, hi=N-1)
+        //            초반 슬롯의 motion 차이가 작아도 후반 슬롯의 큰 motion 차이를 활용해 clean 도너 확보
+        const WINDOW_K = Math.max(2, Math.floor(SAMPLE_COUNT / 12));
+        // 캡처 마진 — 누적 motion이 클수록 큰 마진 필요 (40 → 80px)
+        const MOTION_M = useMotion ? Math.min(80, Math.max(16, Math.floor(Math.min(rw, rh)))) : 0;
+
+        // 캡처 영역 — 정적 모드는 rect 그대로, 모션 모드는 rect+margin
+        const exX = useMotion ? Math.max(0, rx - MOTION_M) : rx;
+        const exY = useMotion ? Math.max(0, ry - MOTION_M) : ry;
+        const exX2 = useMotion ? Math.min(W, rx + rw + MOTION_M) : rx + rw;
+        const exY2 = useMotion ? Math.min(H, ry + rh + MOTION_M) : ry + rh;
+        const exW = exX2 - exX;
+        const exH = exY2 - exY;
+        const rxInEx = rx - exX;
+        const ryInEx = ry - exY;
+
+        const totalPasses = useMotion ? 5 : 3;
+        showLoader(`1/${totalPasses} 영상 키프레임 수집 중...`, `샘플 0/${SAMPLE_COUNT}${useMotion ? ` · 확장 ${exW}×${exH} (마진 ${MOTION_M}px)` : ''}`);
+
+        const sampCv = document.createElement('canvas');
+        sampCv.width = exW; sampCv.height = exH;
+        const sampCtx = sampCv.getContext('2d', { willReadFrequently: true, alpha: false });
+        const samplesEx = [];
+
+        sourceVideo.muted = true;
+        for (let i = 0; i < SAMPLE_COUNT; i++) {
+          const t = (dur * (i + 0.5)) / SAMPLE_COUNT;
+          await new Promise((res) => {
+            const onSeeked = () => { sourceVideo.removeEventListener('seeked', onSeeked); res(); };
+            sourceVideo.addEventListener('seeked', onSeeked);
+            sourceVideo.currentTime = Math.min(dur - 0.01, Math.max(0, t));
+            setTimeout(() => { sourceVideo.removeEventListener('seeked', onSeeked); res(); }, 1500);
+          });
+          try { sampCtx.drawImage(sourceVideo, exX, exY, exW, exH, 0, 0, exW, exH); } catch(_) {}
+          samplesEx.push(new Uint8ClampedArray(sampCtx.getImageData(0, 0, exW, exH).data));
+          if (i % 3 === 0) showLoader(`1/${totalPasses} 영상 키프레임 수집 중...`, `샘플 ${i + 1}/${SAMPLE_COUNT}`);
+        }
+
+        // ─── Pass 1.25: 모션 추정 (E:OpenCV 또는 D:블록매칭) ───
+        const motion = new Array(SAMPLE_COUNT).fill(null).map(() => ({ dx: 0, dy: 0 }));
+        let motionEngine = 'static (no motion compensation)';
+
+        // ─── E: OpenCV.js Farneback (temporal_opencv 옵션 선택 시) ───
+        let eDone = false;
+        if (useOpenCV) {
+          showLoader('2/5 카메라 움직임 추적 중...', 'OpenCV.js (5MB) 다운로드 중...');
+          let cvReady = false;
+          try {
+            await Promise.race([
+              loadOpenCV(),
+              new Promise((_, rej) => setTimeout(() => rej(new Error('OpenCV.js 로딩 12s 타임아웃')), 12000))
+            ]);
+            cvReady = (typeof window.cv !== 'undefined' && window.cv.Mat && window.cv.calcOpticalFlowFarneback);
+          } catch(e) {
+            console.warn('[video_wm v4+E] OpenCV.js 로드 실패, D 폴백:', e.message);
+          }
+
+          if (cvReady) {
+            motionEngine = 'E:OpenCV.js Farneback';
+            showLoader('2/5 카메라 움직임 추적 중...', 'OpenCV dense optical flow 계산...');
+            try {
+              const _cv = window.cv;
+              // 그레이스케일 변환
+              const exNumPxE = exW * exH;
+              const grayBufsE = new Array(SAMPLE_COUNT);
+              for (let i = 0; i < SAMPLE_COUNT; i++) {
+                const buf = new Uint8Array(exNumPxE);
+                const src = samplesEx[i];
+                for (let p = 0; p < exNumPxE; p++) {
+                  const o = p * 4;
+                  buf[p] = (src[o] * 0.299 + src[o+1] * 0.587 + src[o+2] * 0.114) | 0;
+                }
+                grayBufsE[i] = buf;
+              }
+              for (let i = 1; i < SAMPLE_COUNT; i++) {
+                const prevMat = new _cv.Mat(exH, exW, _cv.CV_8UC1);
+                const nextMat = new _cv.Mat(exH, exW, _cv.CV_8UC1);
+                prevMat.data.set(grayBufsE[i-1]);
+                nextMat.data.set(grayBufsE[i]);
+                const flowMat = new _cv.Mat();
+                // Farneback: pyrScale=0.5, levels=3, winsize=15, iterations=3, polyN=5, polySigma=1.2
+                _cv.calcOpticalFlowFarneback(prevMat, nextMat, flowMat, 0.5, 3, 15, 3, 5, 1.2, 0);
+                let sumDx = 0, sumDy = 0, cnt = 0;
+                const fd = flowMat.data32F;
+                for (let y = 0; y < exH; y += 2) {
+                  for (let x = 0; x < exW; x += 2) {
+                    const inRect = (x >= rxInEx && x < rxInEx + rw && y >= ryInEx && y < ryInEx + rh);
+                    if (inRect) continue;
+                    const o = (y * exW + x) * 2;
+                    sumDx += fd[o]; sumDy += fd[o + 1]; cnt++;
+                  }
+                }
+                const dDx = cnt > 0 ? sumDx / cnt : 0;
+                const dDy = cnt > 0 ? sumDy / cnt : 0;
+                motion[i].dx = motion[i-1].dx + dDx;
+                motion[i].dy = motion[i-1].dy + dDy;
+                prevMat.delete(); nextMat.delete(); flowMat.delete();
+                if (i % 4 === 0) {
+                  showLoader('2/5 카메라 움직임 추적 중...', `OpenCV ${i}/${SAMPLE_COUNT} · Δ=(${dDx.toFixed(1)},${dDy.toFixed(1)})`);
+                  await new Promise(r => setTimeout(r, 0));
+                }
+              }
+              const dxRange = [Math.min(...motion.map(m => m.dx)).toFixed(1), Math.max(...motion.map(m => m.dx)).toFixed(1)];
+              const dyRange = [Math.min(...motion.map(m => m.dy)).toFixed(1), Math.max(...motion.map(m => m.dy)).toFixed(1)];
+              console.log(`[video_wm v4+E] ${motionEngine} · range dx=[${dxRange[0]}, ${dxRange[1]}] dy=[${dyRange[0]}, ${dyRange[1]}]`);
+              eDone = true;
+            } catch(e) {
+              console.warn('[video_wm v4+E] OpenCV 계산 오류, D 폴백:', e);
+              motionEngine = 'static (E exception)';
+              for (let i = 0; i < SAMPLE_COUNT; i++) { motion[i].dx = 0; motion[i].dy = 0; }
+            }
+          } else {
+            console.warn('[video_wm v4+E] OpenCV.js 사용 불가 — D 폴백');
+          }
+        }
+
+        // ─── D: 블록 매칭 SSD (temporal_motion 또는 E 폴백) ───
+        if (useMotion && !eDone) {
+          motionEngine = 'D:Block-Matching SSD' + (useOpenCV ? ' (E fallback)' : '');
+          showLoader('2/5 카메라 움직임 추적 중...', `블록 매칭 SSD 계산 (마진 ±${MOTION_M}px)`);
+          try {
+            // 그레이스케일 변환 (RGBA → Y)
+            const exNumPx = exW * exH;
+            const grayBufs = new Array(SAMPLE_COUNT);
+            for (let i = 0; i < SAMPLE_COUNT; i++) {
+              const buf = new Uint8Array(exNumPx);
+              const src = samplesEx[i];
+              for (let p = 0; p < exNumPx; p++) {
+                const o = p * 4;
+                buf[p] = (src[o] * 0.299 + src[o+1] * 0.587 + src[o+2] * 0.114) | 0;
+              }
+              grayBufs[i] = buf;
+            }
+            // 마진 영역 (rect 외부 = 실제 배경) 인덱스 미리 계산 — rect 내부는 워터마크라 SSD 무의미
+            const refIdxs = [];
+            const refStride = 2;
+            for (let y = 0; y < exH; y += refStride) {
+              for (let x = 0; x < exW; x += refStride) {
+                const inRect = (x >= rxInEx && x < rxInEx + rw && y >= ryInEx && y < ryInEx + rh);
+                if (!inRect) refIdxs.push(y * exW + x);
+              }
+            }
+            if (refIdxs.length < 50) {
+              console.warn('[video_wm v4+D] 마진 영역이 너무 작음 — 정적 모드로 폴백');
+              motionEngine = 'static (margin too small)';
+            } else {
+              // 슬롯 i와 슬롯 i-1 간 delta motion 추정 (±MOTION_M, step 1)
+              const SEARCH = Math.min(MOTION_M, 20);  // ±20px 이내 (consecutive 슬롯 가정)
+              const deltas = new Array(SAMPLE_COUNT).fill(null).map(() => ({ dx: 0, dy: 0, ssd: Infinity }));
+              for (let i = 1; i < SAMPLE_COUNT; i++) {
+                const prev = grayBufs[i-1], curr = grayBufs[i];
+                let bestSSD = Infinity, bestDx = 0, bestDy = 0;
+                for (let dy = -SEARCH; dy <= SEARCH; dy += 1) {
+                  for (let dx = -SEARCH; dx <= SEARCH; dx += 1) {
+                    let ssd = 0, cnt = 0;
+                    for (let r = 0; r < refIdxs.length; r++) {
+                      const idx = refIdxs[r];
+                      const py = (idx / exW) | 0;
+                      const px = idx - py * exW;
+                      const sy = py + dy, sx = px + dx;
+                      if (sy < 0 || sy >= exH || sx < 0 || sx >= exW) continue;
+                      const d = prev[idx] - curr[sy * exW + sx];
+                      ssd += d * d; cnt++;
+                    }
+                    if (cnt > 0) {
+                      const norm = ssd / cnt;
+                      if (norm < bestSSD) { bestSSD = norm; bestDx = dx; bestDy = dy; }
+                    }
+                  }
+                }
+                deltas[i].dx = bestDx; deltas[i].dy = bestDy; deltas[i].ssd = bestSSD;
+                if (i % 4 === 0) {
+                  showLoader('2/5 카메라 움직임 추적 중...', `블록 매칭 ${i}/${SAMPLE_COUNT} · Δ=(${bestDx},${bestDy}) SSD=${bestSSD.toFixed(0)}`);
+                  await new Promise(r => setTimeout(r, 0));
+                }
+              }
+
+              // ─── 안정화 1: SSD 신뢰도 체크 — 매칭 품질이 너무 낮으면 delta=0 ───
+              // 임계값: 전체 평균 SSD의 3배 이상이면 outlier로 간주
+              const ssdValues = deltas.slice(1).map(d => d.ssd).filter(s => isFinite(s));
+              const ssdMean = ssdValues.length > 0 ? ssdValues.reduce((a,b)=>a+b, 0) / ssdValues.length : 0;
+              const ssdThresh = ssdMean * 3;
+              let outliers = 0;
+              for (let i = 1; i < SAMPLE_COUNT; i++) {
+                if (deltas[i].ssd > ssdThresh) {
+                  deltas[i].dx = 0; deltas[i].dy = 0; outliers++;
+                }
+              }
+
+              // ─── 안정화 2: 5-tap median filter (delta 시퀀스의 burst noise 제거) ───
+              const filtered = new Array(SAMPLE_COUNT).fill(null).map(() => ({ dx: 0, dy: 0 }));
+              for (let i = 0; i < SAMPLE_COUNT; i++) {
+                const lo = Math.max(0, i - 2), hi = Math.min(SAMPLE_COUNT - 1, i + 2);
+                const xs = [], ys = [];
+                for (let k = lo; k <= hi; k++) { xs.push(deltas[k].dx); ys.push(deltas[k].dy); }
+                xs.sort((a,b)=>a-b); ys.sort((a,b)=>a-b);
+                filtered[i].dx = xs[xs.length >> 1];
+                filtered[i].dy = ys[ys.length >> 1];
+              }
+
+              // 누적 → 절대 motion[i]
+              for (let i = 1; i < SAMPLE_COUNT; i++) {
+                motion[i].dx = motion[i-1].dx + filtered[i].dx;
+                motion[i].dy = motion[i-1].dy + filtered[i].dy;
+              }
+
+              const dxRange = [Math.min(...motion.map(m => m.dx)).toFixed(1), Math.max(...motion.map(m => m.dx)).toFixed(1)];
+              const dyRange = [Math.min(...motion.map(m => m.dy)).toFixed(1), Math.max(...motion.map(m => m.dy)).toFixed(1)];
+              console.log(`[video_wm v4+D] ${motionEngine} · range dx=[${dxRange[0]}, ${dxRange[1]}] dy=[${dyRange[0]}, ${dyRange[1]}] · refs=${refIdxs.length} · outliers=${outliers}/${SAMPLE_COUNT-1} (SSD>${ssdThresh.toFixed(0)})`);
+            }
+          } catch(e) {
+            console.warn('[video_wm v4+D] 블록 매칭 오류, 정적 모드로 폴백:', e);
+            motionEngine = 'static (D exception fallback)';
+            for (let i = 0; i < SAMPLE_COUNT; i++) { motion[i].dx = 0; motion[i].dy = 0; }
+          }
+        }
+
+        // ─── Pass 1.5: 슬롯별 윈도우 mode 합성 (정적 또는 모션 보정) ───
+        const passN = useMotion ? '3/5' : '2/3';
+        showLoader(`${passN} 시간축 배경 합성 중...`, `슬롯 0/${SAMPLE_COUNT} (윈도우 ±${WINDOW_K})`);
+        const Npx = rw * rh;
+        // feather — 박스 가장자리 자연스러운 페이드 (떠있는 느낌 제거)
+        //   v4.1: 폭 8→20px, /4→/3 비율 — 사각형 경계 가시성 최소화
+        //   외부 픽셀은 손대지 않음 (drawImage(sourceVideo) 후 rect 영역만 합성)
+        const feather = Math.min(20, Math.max(6, Math.floor(Math.min(rw, rh) / 3)));
+        bgCanvases = new Array(SAMPLE_COUNT);
+
+        const QSHIFT = 5;
+        const NUM_BUCKETS = 512;
+        const counts = new Int32Array(NUM_BUCKETS);
+        const sumsR = new Int32Array(NUM_BUCKETS);
+        const sumsG = new Int32Array(NUM_BUCKETS);
+        const sumsB = new Int32Array(NUM_BUCKETS);
+        const touched = new Int32Array(64);
+        // v4.3: Clean-priority bucket — 워터마크 회피 (특히 0~3초 정지 슬롯)
+        //   clean 도너(motion 보정 후 rect 밖) vs static 도너(rect 안=워터마크) 분리
+        //   clean 도너 ≥ 2개면 clean에서만 mode → 워터마크 색이 후보에서 제외됨
+        const cleanCounts = useMotion ? new Int32Array(NUM_BUCKETS) : null;
+        const cleanSumsR = useMotion ? new Int32Array(NUM_BUCKETS) : null;
+        const cleanSumsG = useMotion ? new Int32Array(NUM_BUCKETS) : null;
+        const cleanSumsB = useMotion ? new Int32Array(NUM_BUCKETS) : null;
+        const cleanTouched = useMotion ? new Int32Array(64) : null;
+        // 모션 모드는 시간축 median filter (Pass 1.7)을 위해 raw out 보관
+        const outArrays = useMotion ? new Array(SAMPLE_COUNT) : null;
+
+        for (let i = 0; i < SAMPLE_COUNT; i++) {
+          // 모션 모드 — 전체 슬롯 풀 (초반 슬롯도 후반 슬롯의 큰 motion 차이 활용 가능)
+          // 정적 모드 — 좁은 윈도우 (로컬 콘텐츠 변화 적응)
+          const lo = useMotion ? 0 : Math.max(0, i - WINDOW_K);
+          const hi = useMotion ? (SAMPLE_COUNT - 1) : Math.min(SAMPLE_COUNT - 1, i + WINDOW_K);
+          const out = new Uint8ClampedArray(Npx * 4);
+          const mi = motion[i];
+
+          for (let y = 0; y < rh; y++) {
+            for (let x = 0; x < rw; x++) {
+              const off = (y * rw + x) * 4;
+              let tn = 0;
+              let cn = 0;  // clean 버킷 touched count
+
+              for (let j = lo; j <= hi; j++) {
+                let sx, sy, isClean = false;
+                if (useMotion) {
+                  // v4.5: Forced Edge Donor — in-rect 보정 좌표를 강제로 rect 외곽으로 클램프
+                  //   기존 v4.3/v4.4: in-rect → static fallback (워터마크) → ▽ 비대칭 노출
+                  //   신규 v4.5: in-rect → motion 방향에 따라 가장 자연스러운 외곽으로 push
+                  //   → cn ≈ SAMPLE-1 보장 → mode bucket이 워터마크 색을 절대 안 봄
+                  const mj = motion[j];
+                  const motDx = mj.dx - mi.dx;
+                  const motDy = mj.dy - mi.dy;
+                  const sxc = (rxInEx + x + motDx) | 0;
+                  const syc = (ryInEx + y + motDy) | 0;
+                  const inBoundsM = (sxc >= 0 && syc >= 0 && sxc < exW && syc < exH);
+                  const inRectM = inBoundsM
+                    && sxc >= rxInEx && sxc < rxInEx + rw
+                    && syc >= ryInEx && syc < ryInEx + rh;
+
+                  if (j === i) {
+                    // 자기 자신 — static (워터마크 가능)
+                    sx = rxInEx + x; sy = ryInEx + y;
+                  } else if (inBoundsM && !inRectM) {
+                    // 정상 clean 도너 — motion 보정 좌표가 이미 rect 밖
+                    sx = sxc; sy = syc;
+                    isClean = true;
+                  } else if (inBoundsM && inRectM) {
+                    // v4.5: 강제 외곽 밀어냄 — motion 방향 기반
+                    let fsx, fsy;
+                    if (Math.abs(motDx) >= Math.abs(motDy) && motDx !== 0) {
+                      // 수평 motion 우세 → 좌/우 외곽
+                      fsx = motDx > 0 ? rxInEx + rw : rxInEx - 1;
+                      fsy = syc;
+                    } else if (motDy !== 0) {
+                      // 수직 motion 우세 → 상/하 외곽
+                      fsx = sxc;
+                      fsy = motDy > 0 ? ryInEx + rh : ryInEx - 1;
+                    } else {
+                      // motion 0 → 픽셀 위치에서 가장 가까운 외곽
+                      const dL = x, dR = rw - 1 - x, dT = y, dB = rh - 1 - y;
+                      const minD = Math.min(dL, dR, dT, dB);
+                      if (minD === dL) { fsx = rxInEx - 1; fsy = syc; }
+                      else if (minD === dR) { fsx = rxInEx + rw; fsy = syc; }
+                      else if (minD === dT) { fsx = sxc; fsy = ryInEx - 1; }
+                      else { fsx = sxc; fsy = ryInEx + rh; }
+                    }
+                    // 경계 안전
+                    if (fsx >= 0 && fsy >= 0 && fsx < exW && fsy < exH) {
+                      sx = fsx; sy = fsy;
+                      isClean = true;
+                    } else {
+                      // 경계 벗어남 → 반대 방향 시도
+                      const altSx = motDx > 0 ? rxInEx - 1 : rxInEx + rw;
+                      const altSy = motDy > 0 ? ryInEx - 1 : ryInEx + rh;
+                      if (altSx >= 0 && altSx < exW) { sx = altSx; sy = syc; isClean = true; }
+                      else if (altSy >= 0 && altSy < exH) { sx = sxc; sy = altSy; isClean = true; }
+                      else { sx = rxInEx + x; sy = ryInEx + y; }
+                    }
+                  } else {
+                    // out-of-bounds → 정적 폴백
+                    sx = rxInEx + x; sy = ryInEx + y;
+                  }
+                } else {
+                  sx = rxInEx + x;
+                  sy = ryInEx + y;
+                }
+                const so = (sy * exW + sx) * 4;
+                const samp = samplesEx[j];
+                const r = samp[so], g = samp[so + 1], b = samp[so + 2];
+                const key = ((r >> QSHIFT) << 6) | ((g >> QSHIFT) << 3) | (b >> QSHIFT);
+                if (isClean) {
+                  if (cleanCounts[key] === 0 && cn < 64) cleanTouched[cn++] = key;
+                  cleanCounts[key]++;
+                  cleanSumsR[key] += r; cleanSumsG[key] += g; cleanSumsB[key] += b;
+                } else {
+                  if (counts[key] === 0 && tn < 64) touched[tn++] = key;
+                  counts[key]++;
+                  sumsR[key] += r; sumsG[key] += g; sumsB[key] += b;
+                }
+              }
+
+              // v4.4: clean 도너 ≥ 1개면 clean에서만 mode 결정 (다이아몬드 ▽ 비대칭 해소)
+              //   임계값 2→1로 낮춰 더 적극적인 워터마크 회피
+              //   단일 도너라도 워터마크 색이 mode 후보가 안 됨 (clean 자체가 깨끗)
+              let bestKey = -1, bestCount = 0, useClean = false;
+              if (useMotion && cn >= 1) {
+                for (let t = 0; t < cn; t++) {
+                  const k = cleanTouched[t];
+                  if (cleanCounts[k] > bestCount) { bestCount = cleanCounts[k]; bestKey = k; }
+                }
+                if (bestKey >= 0) {
+                  out[off]     = (cleanSumsR[bestKey] / bestCount) | 0;
+                  out[off + 1] = (cleanSumsG[bestKey] / bestCount) | 0;
+                  out[off + 2] = (cleanSumsB[bestKey] / bestCount) | 0;
+                  out[off + 3] = 255;
+                  useClean = true;
+                }
+              }
+              if (!useClean) {
+                if (tn === 0 && cn === 0) {
+                  // 도너 없음 — 자기 자신 픽셀 (안전망)
+                  const samp = samplesEx[i];
+                  const so = ((ryInEx + y) * exW + (rxInEx + x)) * 4;
+                  out[off] = samp[so]; out[off + 1] = samp[so + 1]; out[off + 2] = samp[so + 2]; out[off + 3] = 255;
+                } else if (tn > 0) {
+                  // static 폴백 — clean 도너 부족
+                  bestKey = touched[0]; bestCount = counts[bestKey];
+                  for (let t = 1; t < tn; t++) {
+                    const k = touched[t];
+                    if (counts[k] > bestCount) { bestCount = counts[k]; bestKey = k; }
+                  }
+                  out[off]     = (sumsR[bestKey] / bestCount) | 0;
+                  out[off + 1] = (sumsG[bestKey] / bestCount) | 0;
+                  out[off + 2] = (sumsB[bestKey] / bestCount) | 0;
+                  out[off + 3] = 255;
+                } else {
+                  // clean 1개만 → 그대로 사용
+                  bestKey = cleanTouched[0]; bestCount = cleanCounts[bestKey];
+                  out[off]     = (cleanSumsR[bestKey] / bestCount) | 0;
+                  out[off + 1] = (cleanSumsG[bestKey] / bestCount) | 0;
+                  out[off + 2] = (cleanSumsB[bestKey] / bestCount) | 0;
+                  out[off + 3] = 255;
+                }
+              }
+              // 버킷 reset
+              for (let t = 0; t < tn; t++) {
+                const k = touched[t];
+                counts[k] = 0; sumsR[k] = 0; sumsG[k] = 0; sumsB[k] = 0;
+              }
+              if (useMotion) {
+                for (let t = 0; t < cn; t++) {
+                  const k = cleanTouched[t];
+                  cleanCounts[k] = 0; cleanSumsR[k] = 0; cleanSumsG[k] = 0; cleanSumsB[k] = 0;
+                }
+              }
+            }
+          }
+
+          if (useMotion) {
+            // 모션 모드 — feather/캔버스 생성 보류, raw 픽셀만 저장 (Pass 1.7에서 일괄 처리)
+            outArrays[i] = out;
+          } else {
+            // 정적 모드 — feather → 캔버스
+            // v4.1: smoothstep(t² · (3-2t)) — linear 대비 가장자리 인지도 ↓
+            if (feather > 0) {
+              for (let y = 0; y < rh; y++) {
+                for (let x = 0; x < rw; x++) {
+                  const dist = Math.min(x, y, rw - 1 - x, rh - 1 - y);
+                  if (dist < feather) {
+                    const t = dist / feather;
+                    const s = t * t * (3 - 2 * t);  // smoothstep
+                    out[(y * rw + x) * 4 + 3] = Math.round(s * 255);
+                  }
+                }
+              }
+            }
+            const bgCv = document.createElement('canvas');
+            bgCv.width = rw; bgCv.height = rh;
+            bgCv.getContext('2d').putImageData(new ImageData(out, rw, rh), 0, 0);
+            bgCanvases[i] = bgCv;
+          }
+
+          if (i % 2 === 0) {
+            showLoader(`${passN} 시간축 배경 합성 중...`, `슬롯 ${i + 1}/${SAMPLE_COUNT}`);
+            await new Promise(r => setTimeout(r, 0));
+          }
+        }
+
+        // ─── Pass 1.6: Spatial Diffusion Inpainting (모션 모드 전용 · 보장 제거) ───
+        // v4.6: motion 추정이 빗나가도 (sub-pixel/0~3초 정지/장면 전환) 워터마크 ▽ 살아남는 문제 해결.
+        //   각 픽셀 = rect 외곽 4변까지의 거리 가중 평균 (motion과 무관, 현재 프레임만 사용)
+        //   outArrays[i] = α·spatial + (1-α)·temporal  (α=0.65)
+        //   → 워터마크 색은 spatial에서 0% (rect 외곽만 본다), temporal에서 ≤35% → 보장 제거
+        //   → temporal의 motion-tracked 텍스처 일부 보존 (35%)
+        if (useMotion) {
+          showLoader('3.5/5 공간 inpainting (보장 제거)...', `슬롯 0/${SAMPLE_COUNT}`);
+          await new Promise(r => setTimeout(r, 0));
+          let spatialDiagSum = 0, spatialDiagCount = 0;
+          const ALPHA = 0.65, INV_ALPHA = 0.35;
+          for (let i = 0; i < SAMPLE_COUNT; i++) {
+            const samp = samplesEx[i];
+            const temporal = outArrays[i];
+            const blended = new Uint8ClampedArray(Npx * 4);
+            for (let y = 0; y < rh; y++) {
+              const yRow = ryInEx + y;
+              const leftSx = rxInEx - 1, rightSx = rxInEx + rw;
+              const lValid = leftSx >= 0;
+              const rValid = rightSx < exW;
+              const lOff = (yRow * exW + leftSx) * 4;
+              const rOff = (yRow * exW + rightSx) * 4;
+              const lR = lValid ? samp[lOff] : 0,     lG = lValid ? samp[lOff+1] : 0,     lB = lValid ? samp[lOff+2] : 0;
+              const rR_ = rValid ? samp[rOff] : 0,    rG = rValid ? samp[rOff+1] : 0,     rB = rValid ? samp[rOff+2] : 0;
+              for (let x = 0; x < rw; x++) {
+                const xCol = rxInEx + x;
+                const topSy = ryInEx - 1, botSy = ryInEx + rh;
+                const tValid = topSy >= 0;
+                const bValid = botSy < exH;
+                const tOff = (topSy * exW + xCol) * 4;
+                const bOff = (botSy * exW + xCol) * 4;
+                const tR_ = tValid ? samp[tOff] : 0, tG = tValid ? samp[tOff+1] : 0, tB = tValid ? samp[tOff+2] : 0;
+                const bR_ = bValid ? samp[bOff] : 0, bG = bValid ? samp[bOff+1] : 0, bB = bValid ? samp[bOff+2] : 0;
+                const dL = x + 1, dR_d = rw - x, dT = y + 1, dB = rh - y;
+                const wL = lValid ? 1/dL : 0;
+                const wR = rValid ? 1/dR_d : 0;
+                const wT = tValid ? 1/dT : 0;
+                const wB = bValid ? 1/dB : 0;
+                const wSum = wL + wR + wT + wB;
+                const o = (y * rw + x) * 4;
+                let spR = 0, spG = 0, spB = 0;
+                if (wSum > 0) {
+                  spR = (lR*wL + rR_*wR + tR_*wT + bR_*wB) / wSum;
+                  spG = (lG*wL + rG*wR + tG*wT + bG*wB) / wSum;
+                  spB = (lB*wL + rB*wR + tB*wT + bB*wB) / wSum;
+                  spatialDiagCount++;
+                  spatialDiagSum += (spR + spG + spB) / 3;
+                }
+                blended[o]   = (ALPHA * spR + INV_ALPHA * temporal[o])   | 0;
+                blended[o+1] = (ALPHA * spG + INV_ALPHA * temporal[o+1]) | 0;
+                blended[o+2] = (ALPHA * spB + INV_ALPHA * temporal[o+2]) | 0;
+                blended[o+3] = 255;
+              }
+            }
+            outArrays[i] = blended;
+            if (i % 4 === 0) {
+              showLoader('3.5/5 공간 inpainting (보장 제거)...', `슬롯 ${i + 1}/${SAMPLE_COUNT}`);
+              await new Promise(r => setTimeout(r, 0));
+            }
+          }
+          const spatialDiagAvg = spatialDiagCount > 0 ? (spatialDiagSum / spatialDiagCount).toFixed(1) : 'N/A';
+          console.log(`[video_wm v4.6] Pass 1.6 spatial diffusion done · α=${ALPHA} · avgLuma=${spatialDiagAvg} · pixels=${spatialDiagCount}`);
+        }
+
+        // ─── Pass 1.7: 시간축 3-tap median filter (모션 모드 전용 · 깜빡임 제거) ───
+        // mode-bucket은 불연속 함수라서 인접 슬롯 간 1등 버킷이 점프할 수 있음 (= 깜빡임).
+        // 픽셀 단위 median은 outlier 슬롯 한두 개를 자동 무시 → bgCanvas 시퀀스가 매끄러워짐.
+        if (useMotion) {
+          showLoader('4/5 시간축 안정화 (median filter)...', `슬롯 0/${SAMPLE_COUNT}`);
+          await new Promise(r => setTimeout(r, 0));
+          for (let i = 0; i < SAMPLE_COUNT; i++) {
+            const lo = Math.max(0, i - 1);
+            const hi = Math.min(SAMPLE_COUNT - 1, i + 1);
+            const cnt = hi - lo + 1;
+            const out = new Uint8ClampedArray(Npx * 4);
+            if (cnt === 3) {
+              const a = outArrays[lo], b = outArrays[i], c = outArrays[hi];
+              for (let p = 0; p < Npx; p++) {
+                const o = p * 4;
+                // median of 3 (각 채널 독립) — 분기로 정렬 없이 처리
+                const ar = a[o], br = b[o], cr = c[o];
+                out[o]     = ar > br ? (br > cr ? br : (ar > cr ? cr : ar)) : (ar > cr ? ar : (br > cr ? cr : br));
+                const ag = a[o+1], bg = b[o+1], cg = c[o+1];
+                out[o+1]   = ag > bg ? (bg > cg ? bg : (ag > cg ? cg : ag)) : (ag > cg ? ag : (bg > cg ? cg : bg));
+                const ab = a[o+2], bb = b[o+2], cb = c[o+2];
+                out[o+2]   = ab > bb ? (bb > cb ? bb : (ab > cb ? cb : ab)) : (ab > cb ? ab : (bb > cb ? cb : bb));
+                out[o+3]   = 255;
+              }
+            } else {
+              // 끝 슬롯(2-tap)은 mean (median 정의 모호)
+              const a = outArrays[lo], b = outArrays[hi];
+              for (let p = 0; p < Npx; p++) {
+                const o = p * 4;
+                out[o]   = ((a[o]   + b[o]  ) >> 1);
+                out[o+1] = ((a[o+1] + b[o+1]) >> 1);
+                out[o+2] = ((a[o+2] + b[o+2]) >> 1);
+                out[o+3] = 255;
+              }
+            }
+            // feather 적용 (smoothstep — 모션 모드도 동일)
+            if (feather > 0) {
+              for (let y = 0; y < rh; y++) {
+                for (let x = 0; x < rw; x++) {
+                  const dist = Math.min(x, y, rw - 1 - x, rh - 1 - y);
+                  if (dist < feather) {
+                    const t = dist / feather;
+                    const s = t * t * (3 - 2 * t);  // smoothstep
+                    out[(y * rw + x) * 4 + 3] = Math.round(s * 255);
+                  }
+                }
+              }
+            }
+            const bgCv = document.createElement('canvas');
+            bgCv.width = rw; bgCv.height = rh;
+            bgCv.getContext('2d').putImageData(new ImageData(out, rw, rh), 0, 0);
+            bgCanvases[i] = bgCv;
+            if (i % 4 === 0) {
+              showLoader('4/5 시간축 안정화 (median filter)...', `슬롯 ${i + 1}/${SAMPLE_COUNT}`);
+              await new Promise(r => setTimeout(r, 0));
+            }
+          }
+        }
+
+        sourceVideo.muted = false;
+        await new Promise((res) => {
+          const onSeeked = () => { sourceVideo.removeEventListener('seeked', onSeeked); res(); };
+          sourceVideo.addEventListener('seeked', onSeeked);
+          sourceVideo.currentTime = 0;
+          setTimeout(() => { sourceVideo.removeEventListener('seeked', onSeeked); res(); }, 1500);
+        });
+        console.log(`[video_wm v4] ${motionEngine} · slots=${SAMPLE_COUNT} K=±${WINDOW_K} window=±${(WINDOW_K * (dur / SAMPLE_COUNT)).toFixed(2)}s feather=${feather}${useMotion ? ` margin=${MOTION_M}px` : ''}`);
       }
 
-      const data = await ffmpeg.readFile(outputName);
-      const blob = new Blob([data.buffer], { type: 'video/mp4' });
-      setPendingBlob(blob, `${baseName()}_watermark_removed.mp4`);
+      // 4) Canvas 스트림 (30fps)
+      const canvasStream = cv.captureStream(30);
 
-      // Swap: hide canvas/overlay, show video with processed result
+      // 5) 오디오 트랙 머지 (가능한 경우)
+      try {
+        const captureFn = sourceVideo.captureStream || sourceVideo.mozCaptureStream;
+        if (captureFn) {
+          const vidStream = captureFn.call(sourceVideo);
+          const audioTracks = vidStream.getAudioTracks();
+          audioTracks.forEach(t => canvasStream.addTrack(t));
+          console.log('[video_wm v4] audio tracks:', audioTracks.length);
+        } else {
+          console.warn('[video_wm v4] captureStream not supported — output will be silent');
+        }
+      } catch(e) {
+        console.warn('[video_wm v4] audio merge failed (silent output):', e);
+      }
+
+      // 6) MediaRecorder — v4.1: 원본 비트레이트 추정 (화질 보존)
+      //   원본 파일 크기/길이로 비트레이트 역산 → audio 추정치 차감 → 최소 4Mbps 보장 → 최대 16Mbps 제한
+      //   원본보다 낮으면 화질 다운그레이드, 같거나 높으면 거의 동일 (Canvas 2D 인코딩 한계 내)
+      let estVideoBps = 4_000_000;
+      try {
+        if (currentFileSize > 0 && dur > 0) {
+          const totalBps = (currentFileSize * 8) / dur;
+          // audio 256k 추정 차감 → 최소 4M, 최대 16M 클램프
+          estVideoBps = Math.max(4_000_000, Math.min(16_000_000, Math.round(totalBps - 256_000)));
+        }
+      } catch(_) {}
+      const chunks = [];
+      recorder = new MediaRecorder(canvasStream, {
+        mimeType: fmt.mime,
+        videoBitsPerSecond: estVideoBps,
+        audioBitsPerSecond: 256_000  // v4.1: 128k → 256k (원본 음질 보존)
+      });
+      console.log(`[video_wm v4.1] bitrate: video=${(estVideoBps/1e6).toFixed(1)}Mbps audio=256kbps`);
+      recorder.ondataavailable = e => { if (e.data && e.data.size > 0) chunks.push(e.data); };
+      const stoppedPromise = new Promise((res, rej) => {
+        recorder.onstop = () => res();
+        recorder.onerror = e => rej(new Error('녹화 오류: ' + (e.error?.message || e)));
+      });
+
+      // 7) 녹화 시작 → 영상 재생 → rAF 드로잉 루프
+      recorder.start(100);
+      const startedAt = performance.now();
+      let frameCount = 0;
+
+      const draw = () => {
+        if (stopped) return;
+        try {
+          ctx.drawImage(sourceVideo, 0, 0, W, H);
+          if ((maskMode === 'temporal' || maskMode === 'temporal_motion' || maskMode === 'temporal_opencv') && bgCanvases) {
+            // L2+ Sliding Window + Slot Blending: 두 인접 슬롯을 시간 위치에 따라 alpha blend
+            // v4.2: Motion-Tracked Draw — bg가 카메라 패닝 따라 미세 시프트 (박스 도드라짐 제거)
+            //   슬롯 i bg = motion[i] 시점의 정지 콘텐츠 스냅샷
+            //   현재 시점 카메라 = motion 보간 (camDx, camDy)
+            //   시프트량 = camD - motion[i].d → bg가 카메라와 함께 움직임 → 외부 콘텐츠와 일치
+            //   feather/2 클램프 → 워터마크 노출 방지 (시프트 큰 경우 정지)
+            const cur = sourceVideo.currentTime || 0;
+            const fIdx = (cur / dur) * (bgCanvases.length - 1);
+            const idx0 = Math.max(0, Math.min(bgCanvases.length - 1, Math.floor(fIdx)));
+            const idx1 = Math.min(bgCanvases.length - 1, idx0 + 1);
+            const blend = fIdx - idx0;  // 0..1
+
+            // 모션 추적 시프트 계산
+            // v4.4: 클램프 feather/2(±10) → feather/5(±4) — 다이아몬드 ▽ 노출 차단
+            //   시프트 양 ≤ 4px → smoothstep alpha < 0.1 → 노출 영역이 시각적으로 사라짐
+            //   박스 도드라짐 효과는 ~90% 유지 (대부분 영상 raw shift는 1~5px 범위)
+            let sx0 = rx, sy0 = ry, sx1 = rx, sy1 = ry;
+            if ((maskMode === 'temporal_motion' || maskMode === 'temporal_opencv') && motion && motion[idx0]) {
+              const camDx = motion[idx0].dx * (1 - blend) + motion[idx1].dx * blend;
+              const camDy = motion[idx0].dy * (1 - blend) + motion[idx1].dy * blend;
+              const cl = Math.max(2, Math.min(4, feather / 5));  // ±4px (워터마크 노출 차단 강화)
+              const dx0 = Math.max(-cl, Math.min(cl, camDx - motion[idx0].dx));
+              const dy0 = Math.max(-cl, Math.min(cl, camDy - motion[idx0].dy));
+              const dx1 = Math.max(-cl, Math.min(cl, camDx - motion[idx1].dx));
+              const dy1 = Math.max(-cl, Math.min(cl, camDy - motion[idx1].dy));
+              sx0 = rx + dx0; sy0 = ry + dy0;
+              sx1 = rx + dx1; sy1 = ry + dy1;
+            }
+
+            if (idx0 === idx1 || blend < 0.001) {
+              ctx.drawImage(bgCanvases[idx0], sx0, sy0);
+            } else {
+              // base: idx0 (alpha 1.0) → over: idx1 (alpha=blend) = (1-blend)*idx0 + blend*idx1
+              ctx.drawImage(bgCanvases[idx0], sx0, sy0);
+              ctx.globalAlpha = blend;
+              ctx.drawImage(bgCanvases[idx1], sx1, sy1);
+              ctx.globalAlpha = 1.0;
+            }
+          } else if (maskMode === 'box') {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(rx, ry, rw, rh);
+          } else if (maskMode === 'blur' && maskCtx) {
+            // 영역만 잘라서 임시 캔버스에 blur 필터 적용 후 다시 합성
+            maskCtx.filter = `blur(${blurPx}px)`;
+            maskCtx.drawImage(cv, rx, ry, rw, rh, 0, 0, rw, rh);
+            maskCtx.filter = 'none';
+            ctx.drawImage(maskCanvas, rx, ry);
+          } else if (maskMode === 'mosaic' && mosaicCtx) {
+            // 다운샘플 → 업샘플 (smoothing off) = 픽셀 모자이크
+            mosaicCtx.drawImage(cv, rx, ry, rw, rh, 0, 0, mosaicCanvas.width, mosaicCanvas.height);
+            const prev = ctx.imageSmoothingEnabled;
+            ctx.imageSmoothingEnabled = false;
+            ctx.drawImage(mosaicCanvas, 0, 0, mosaicCanvas.width, mosaicCanvas.height, rx, ry, rw, rh);
+            ctx.imageSmoothingEnabled = prev;
+          } else {
+            // fallback: 검정 박스
+            ctx.fillStyle = '#000';
+            ctx.fillRect(rx, ry, rw, rh);
+          }
+        } catch(e) { /* readyState 0 등 일시 오류 무시 */ }
+        frameCount++;
+        const elapsed = (performance.now() - startedAt) / 1000;
+        const cur = sourceVideo.currentTime || 0;
+        const pct = Math.min(99, Math.max(0, Math.round((cur / dur) * 100)));
+        const remaining = Math.max(0, dur - cur);
+        const finalLabel = (maskMode === 'temporal_motion' || maskMode === 'temporal_opencv') ? '5/5 합성 + 인코딩 중...' : (maskMode === 'temporal' ? '3/3 합성 + 인코딩 중...' : '영상 처리 중...');
+        showLoader(finalLabel, `${pct}% · ${cur.toFixed(1)}s/${dur.toFixed(1)}s · ${frameCount}f · 경과 ${elapsed.toFixed(1)}s · 남은 ~${remaining.toFixed(1)}s`);
+        if (sourceVideo.ended || cur >= dur - 0.05) {
+          stopped = true;
+          try { recorder.stop(); } catch(_) {}
+          return;
+        }
+        rafId = requestAnimationFrame(draw);
+      };
+
+      sourceVideo.onended = () => {
+        if (!stopped) { stopped = true; try { recorder.stop(); } catch(_) {} }
+      };
+
+      sourceVideo.currentTime = 0;
+      await sourceVideo.play();
+      draw();
+      await stoppedPromise;
+
+      // 8) Blob 조립 + 미리보기
+      const outMime = fmt.mime.split(';')[0];
+      const blob = new Blob(chunks, { type: outMime });
+      if (blob.size === 0) throw new Error('녹화 결과가 비어있습니다');
+      console.log(`[video_wm v4] output: ${(blob.size/1024/1024).toFixed(2)}MB - ${frameCount} frames - ${fmt.ext}`);
+
+      setPendingBlob(blob, `${baseName()}_wm_removed.${fmt.ext}`);
       const url = URL.createObjectURL(blob);
       previewVideo.src = url;
       previewVideo.load();
@@ -1542,17 +2307,15 @@ input[type=color]{width:36px;height:36px;border:var(--border-w) solid var(--ink)
       overlay.classList.remove('active');
       clearOverlay();
       previewVideo.play?.().catch(()=>{});
-      // Cleanup FFmpeg FS
-      try { await ffmpeg.deleteFile(inputName); await ffmpeg.deleteFile(outputName); } catch(_) {}
 
+      cleanup();
       hideLoader();
-      notify('영상 워터마크 제거 완료 — 미리보기 확인 후 다운로드');
+      notify(`영상 워터마크 제거 완료 (.${fmt.ext}) — 미리보기 확인 후 다운로드`);
     } catch (e) {
+      cleanup();
       hideLoader();
-      console.error('[video_wm] run failed:', e);
+      console.error('[video_wm v4] failed:', e);
       notify('영상 처리 실패: ' + (e.message || e), true);
-    } finally {
-      window.__ffmpegLogCb = null;
     }
   }
 
